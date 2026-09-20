@@ -549,7 +549,7 @@ with cv_tab1:
                     <div><span style="color: #38BDF8; font-weight: bold;">■</span> <b>Cyan Oval</b>: Mahatma Gandhi Latent Watermark.</div>
                 </div>
                 <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: #94A3B8;">
-                    <b>Contour Aspect Ratio:</b> <code>{aspect_ratio:.2f if aspect_ratio else 'N/A'}</code> (Spec: <code>{denom_info['aspect_ratio']}</code>)
+                    <b>Contour Aspect Ratio:</b> <code>{f"{aspect_ratio:.2f}" if aspect_ratio else 'N/A'}</code> (Spec: <code>{denom_info['aspect_ratio']}</code>)
                 </div>
             </div>
             """,

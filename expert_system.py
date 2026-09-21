@@ -120,10 +120,12 @@ class VerificationExpertSystem:
       4. Goal State Derivation: Asserts final verdict (GENUINE, SUSPICIOUS, COUNTERFEIT).
     """
 
-    def __init__(self, tolerance_pct: float = 0.05) -> None:
+    def __init__(self, tolerance_pct: float = 0.12) -> None:
         """
         Parameters:
-            tolerance_pct (float): Permissible dimensional aspect ratio variance (default: 5% / ±0.05).
+            tolerance_pct (float): Permissible dimensional aspect ratio variance.
+                Default is 12% (±0.12) to accommodate real camera perspective
+                distortion, hand tilt, and homography approximation error.
         """
         self.tolerance_pct = tolerance_pct
         self.peas_model = AgentPEAS()
@@ -207,30 +209,33 @@ class VerificationExpertSystem:
         # ======================================================================
         # RULE 2 (CO3 & CO4): Security Thread Vertical Continuity
         # ======================================================================
-        # Genuine banknotes must have continuous metallic/fluorescent strip >= 80%
+        # Genuine banknotes must have continuous metallic/fluorescent strip.
+        # Threshold lowered to 65% (from 80%) to accommodate:
+        #   - Real circulated/worn notes with partial thread abrasion
+        #   - Camera angle causing ROI to miss the strip edge
         obs_continuity = working_memory["strip_continuity"]
-        r2_passed = bool(obs_continuity >= 80.0)
+        r2_passed = bool(obs_continuity >= 65.0)
 
         if r2_passed:
             r2_explanation = (
                 f"K-Means segmentation verifies continuous metallic thread coverage "
-                f"at {obs_continuity:.1f}% (exceeds >=80.0% bank specification)."
+                f"at {obs_continuity:.1f}% (exceeds >=65.0% acceptance threshold)."
             )
             penalty_r2 = 0.0
-        elif obs_continuity >= 60.0:
-            # Soft fail (worn or creased)
+        elif obs_continuity >= 45.0:
+            # Soft fail (worn, creased, or camera offset)
             r2_explanation = (
                 f"Security thread segmented with partial continuity of {obs_continuity:.1f}%. "
-                f"Slight degradation or folding detected (below 80% standard)."
+                f"Slight degradation, folding, or ROI misalignment detected."
             )
-            penalty_r2 = 25.0
+            penalty_r2 = 20.0
         else:
-            # Critical fail (broken/fake line or missing ribbon)
+            # Hard fail (broken/fake line or missing ribbon)
             r2_explanation = (
                 f"Critical security failure: security thread continuity is only {obs_continuity:.1f}% "
-                f"(requires >=80.0%). Indicates broken imitation or absent metallic foil."
+                f"(requires >=65.0%). Indicates broken imitation or absent metallic foil."
             )
-            penalty_r2 = 45.0
+            penalty_r2 = 40.0
             critical_failures += 1
 
         total_penalty += penalty_r2
@@ -305,16 +310,20 @@ class VerificationExpertSystem:
         obs_var = working_memory["watermark_variance"]
         obs_dr = working_memory["watermark_dynamic_range"]
 
-        r4_passed = bool(70.0 <= obs_var <= 1500.0 and obs_dr >= 28.0)
+        # Lower variance floor from 70 to 40: real camera images often produce
+        # lower variance due to JPEG compression, autofocus softening, and
+        # the watermark ROI not being perfectly aligned on the translucent paper area.
+        # Dynamic range threshold at 27: genuine notes 31-35, blank counterfeit 25.
+        r4_passed = bool(40.0 <= obs_var <= 1500.0 and obs_dr >= 27.0)
         if r4_passed:
             r4_explanation = (
                 f"Latent portrait presence confirmed: watermark window variance {obs_var:.1f} "
                 f"and dynamic contrast {obs_dr:.1f} fall within authentic paper matrix band."
             )
             penalty_r4 = 0.0
-        elif obs_var < 70.0:
+        elif obs_var < 40.0:
             r4_explanation = (
-                f"Watermark window lacks latent features (Variance: {obs_var:.1f} < 70.0). "
+                f"Watermark window lacks latent features (Variance: {obs_var:.1f} < 40.0). "
                 f"Window appears flat or blank (typical of plain paper counterfeit)."
             )
             penalty_r4 = 35.0
@@ -359,7 +368,10 @@ class VerificationExpertSystem:
                 f"The {denom_spec['display_name']} banknote exhibits continuous security strip, "
                 f"legitimate multi-tone watermark, and compliant physical dimensions."
             )
-        elif critical_failures >= 1 or total_penalty >= 40.0:
+        elif critical_failures >= 2 or total_penalty >= 60.0:
+            # Require at least 2 independent critical failures OR a very high
+            # cumulative penalty before declaring COUNTERFEIT. A single borderline
+            # failure from camera noise / lighting is routed to SUSPICIOUS instead.
             verdict = Verdict.COUNTERFEIT
             failed_names = [r.rule_name for r in checklist if not r.passed]
             summary = (

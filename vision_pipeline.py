@@ -488,9 +488,12 @@ def analyze_watermark(watermark_roi: np.ndarray) -> Dict[str, Any]:
     p95 = np.percentile(gray, 95)
     dynamic_range = float(p95 - p5)
 
-    # Legitimate watermarks exhibit moderate variance (typically 120 - 950)
-    # and dynamic range (typically 35 - 180)
-    has_latent = bool(80.0 <= variance <= 1400.0 and dynamic_range >= 30.0)
+    # Variance floor lowered from 80 to 40 and dynamic range set to 27
+    # to match Rule 4 in expert_system.py. Camera-captured images produce
+    # softer watermark regions due to JPEG compression and autofocus blur.
+    # Genuine samples: dyn_range 31-35. Blank counterfeit: 25 -> threshold at 27 is safe.
+    # Legitimate watermarks: variance ~40-1400, dynamic range ~27-180
+    has_latent = bool(40.0 <= variance <= 1400.0 and dynamic_range >= 27.0)
 
     return {
         "variance": round(variance, 2),

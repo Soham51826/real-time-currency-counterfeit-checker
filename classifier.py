@@ -29,9 +29,11 @@ DENOMINATION_SPECS: Dict[str, Dict[str, Any]] = {
         "dimensions_mm": (142, 66),
         "aspect_ratio": round(142 / 66, 2),  # ~2.15
         "hsv_bounds": {
-            "h_mean": (120, 145),   # Lavender/violet-blue
-            "s_mean": (35, 115),
-            "v_mean": (130, 225),
+            # Widened from (120,145) → (108,158): lavender shifts under incandescent light
+            "h_mean": (108, 158),
+            # Widened from (35,115) → (18,140): camera compression lowers saturation
+            "s_mean": (18, 140),
+            "v_mean": (110, 235),
         },
     },
     "200": {
@@ -41,9 +43,11 @@ DENOMINATION_SPECS: Dict[str, Dict[str, Any]] = {
         "dimensions_mm": (146, 66),
         "aspect_ratio": round(146 / 66, 2),  # ~2.21
         "hsv_bounds": {
-            "h_mean": (16, 34),     # Warm golden yellow
-            "s_mean": (120, 230),
-            "v_mean": (160, 250),
+            # Widened from (16,34) → (8,48): golden-yellow can shift warm/cool under camera
+            "h_mean": (8, 48),
+            # Widened from (120,230) → (70,245): saturation varies with camera exposure
+            "s_mean": (70, 245),
+            "v_mean": (145, 255),
         },
     },
     "500": {
@@ -53,9 +57,11 @@ DENOMINATION_SPECS: Dict[str, Dict[str, Any]] = {
         "dimensions_mm": (150, 66),
         "aspect_ratio": round(150 / 66, 2),  # ~2.27
         "hsv_bounds": {
-            "h_mean": (35, 75),     # Olive/slate desaturated grey
-            "s_mean": (15, 75),     # Low saturation signature
-            "v_mean": (100, 195),
+            # Widened from (35,75) → (20,95): olive-grey note has broad hue spread
+            "h_mean": (20, 95),
+            # Widened from (15,75) → (5,105): very low-saturation note, easily affected by WB
+            "s_mean": (5, 105),
+            "v_mean": (80, 210),
         },
     },
     "2000": {
@@ -65,9 +71,11 @@ DENOMINATION_SPECS: Dict[str, Dict[str, Any]] = {
         "dimensions_mm": (166, 66),
         "aspect_ratio": round(166 / 66, 2),  # ~2.51
         "hsv_bounds": {
-            "h_mean": (145, 172),   # Magenta / deep pink
-            "s_mean": (110, 225),
-            "v_mean": (130, 230),
+            # Widened from (145,172) → (132,178): deep pink/magenta can wrap in HSV space
+            "h_mean": (132, 178),
+            # Widened from (110,225) → (65,240): saturation spread due to multi-tone print
+            "s_mean": (65, 240),
+            "v_mean": (115, 240),
         },
     },
 }

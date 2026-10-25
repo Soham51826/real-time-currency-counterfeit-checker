@@ -126,22 +126,44 @@ Real-Time Currency and Counterfeit checker/
 
 ## 🚀 Quickstart & Execution
 
-### 1. Install Dependencies
+### 1. Clone the Repository
 ```bash
+git clone https://github.com/Soham51826/real-time-currency-counterfeit-checker.git
+cd real-time-currency-counterfeit-checker
+```
+
+### 2. Create and Activate a Virtual Environment
+**On Windows (Command Prompt / PowerShell):**
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+**On macOS / Linux:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install Dependencies
+```bash
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 2. Run Automated Verification Tests
+### 4. Run Automated Verification Tests
 Executes full regression tests across all genuine and counterfeit samples:
 ```bash
 python test_pipeline.py
 ```
 
-### 3. Launch the Streamlit Forensic Dashboard
-```bash
-python -m streamlit run app.py
-```
-Access the application at: `http://localhost:8501` (or next available port, e.g., `8502`).
+### 5. Launch the Forensic Dashboard
+- **Windows One-Click**: Simply double-click `run_app.bat` (automatically detects `.venv`, system Python, or PATH Streamlit).
+- **Cross-Platform Terminal**:
+  ```bash
+  streamlit run app.py
+  ```
+Access the application in your browser at `http://localhost:8501`.
 
 ---
 

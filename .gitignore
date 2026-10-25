@@ -1,5 +1,88 @@
+# ==============================================================================
+# CurrencyGuard AI - Comprehensive .gitignore
+# ==============================================================================
+
+# Virtual Environments (DO NOT commit project virtual environments)
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Python Bytecode & Compilation Artifacts
 __pycache__/
 *.py[cod]
-*.class
+*$py.class
+*.so
+.Python
+
+# Distribution & Packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing, Coverage & Static Analysis Caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# IDEs, Code Editors & Workspaces
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Operating System Files & Thumbnails
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Secrets, Credentials & Local Configurations
+.env
+.env.local
+.env.*.local
+*.env
+secrets.json
+credentials.json
+*.pem
+*.key
+.streamlit/secrets.toml
+
+# Local User Testing Uploads & Logs
+.user_uploaded/
+scratch/
+*.log
+*.tmp

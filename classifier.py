@@ -10,7 +10,7 @@ Academic Mapping:
     probabilistic confidence scoring, and multi-class confusion matrix evaluation.
 """
 
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any, Literal
 import os
 import numpy as np
 import pandas as pd
@@ -29,8 +29,8 @@ DENOMINATION_SPECS: Dict[str, Dict[str, Any]] = {
         "dimensions_mm": (142, 66),
         "aspect_ratio": round(142 / 66, 2),  # ~2.15
         "hsv_bounds": {
-            # Widened from (120,145) → (108,158): lavender shifts under incandescent light
-            "h_mean": (108, 158),
+            # Accommodates lavender under warm incandescent/CFL to cool LED camera lighting
+            "h_mean": (95, 160),
             # Widened from (35,115) → (18,140): camera compression lowers saturation
             "s_mean": (18, 140),
             "v_mean": (110, 235),
@@ -101,7 +101,9 @@ class DenominationClassifier:
         is_trained (bool): Status flag indicating if model weights are fitted.
     """
 
-    def __init__(self, max_depth: int = 6, criterion: str = "entropy") -> None:
+    def __init__(
+        self, max_depth: int = 6, criterion: Literal["entropy", "gini", "log_loss"] = "entropy"
+    ) -> None:
         """
         Initializes the Decision Tree classifier with academic parameters.
 
@@ -204,21 +206,27 @@ class DenominationClassifier:
         preds = self.model.predict(X_test)
         acc = accuracy_score(y_test, preds)
         cm = confusion_matrix(y_test, preds, labels=self.classes_)
+        zero_div: Any = 0
         prec, rec, f1, support = precision_recall_fscore_support(
-            y_test, preds, labels=self.classes_, zero_division=0
+            y_test, preds, labels=self.classes_, zero_division=zero_div
         )
+
+        prec_arr = np.asarray(prec)
+        rec_arr = np.asarray(rec)
+        f1_arr = np.asarray(f1)
+        supp_arr = np.asarray(support) if support is not None else np.zeros(len(self.classes_))
 
         metrics_per_class = {}
         for i, c in enumerate(self.classes_):
             metrics_per_class[c] = {
-                "precision": round(float(prec[i]), 4),
-                "recall": round(float(rec[i]), 4),
-                "f1_score": round(float(f1[i]), 4),
-                "support": int(support[i]),
+                "precision": round(float(prec_arr[i]), 4),
+                "recall": round(float(rec_arr[i]), 4),
+                "f1_score": round(float(f1_arr[i]), 4),
+                "support": int(supp_arr[i]),
             }
 
         report_str = classification_report(
-            y_test, preds, labels=self.classes_, zero_division=0
+            y_test, preds, labels=self.classes_, zero_division=zero_div
         )
 
         return {
@@ -262,6 +270,52 @@ class DenominationClassifier:
         confidence = float(np.max(probabilities))
 
         return pred_class, round(confidence, 4), proba_dict
+
+    def predict_robust(
+        self,
+        color_features: Dict[str, Any],
+        aspect_ratio: Optional[float] = None,
+    ) -> Tuple[str, float, Dict[str, float]]:
+        """
+        Illumination-robust denomination prediction.
+        Evaluates the Decision Tree on both raw and Gray-World white-balanced color moments.
+        If ambient room light (e.g., warm incandescent or cool LED) shifted the raw Hue/Sat,
+        the white-balanced vector neutralizes the ambient lighting cast and restores
+        canonical central bank denomination recognition.
+
+        Parameters:
+            color_features (Dict[str, Any]): Color moments dictionary from vision_pipeline.
+            aspect_ratio (Optional[float]): Observed or rectified aspect ratio.
+
+        Returns:
+            Tuple[str, float, Dict[str, float]]:
+                - predicted_denomination (str)
+                - confidence (float)
+                - class_probabilities (Dict[str, float])
+        """
+        raw_vec = self.build_feature_vector(color_features, aspect_ratio)
+        pred_raw, conf_raw, proba_raw = self.predict(raw_vec)
+
+        # If raw prediction is high confidence (>= 0.70), trust raw color.
+        # Gray-World white balance subtracts the dominant color of monochrome/dominant banknotes,
+        # which can artificially turn Lavender (₹100) or Magenta (₹2000) into Stone Grey (₹500).
+        if conf_raw >= 0.70:
+            return pred_raw, conf_raw, proba_raw
+
+        # Evaluate white-balanced moments only if raw prediction has lower confidence
+        if "wb_h_mean" in color_features:
+            wb_features = dict(color_features)
+            wb_features["h_mean"] = color_features["wb_h_mean"]
+            wb_features["s_mean"] = color_features["wb_s_mean"]
+            wb_features["v_mean"] = color_features["wb_v_mean"]
+            wb_vec = self.build_feature_vector(wb_features, aspect_ratio)
+            pred_wb, conf_wb, proba_wb = self.predict(wb_vec)
+
+            # Choose white-balanced if it yields higher confidence than raw
+            if conf_wb > conf_raw:
+                return pred_wb, conf_wb, proba_wb
+
+        return pred_raw, conf_raw, proba_raw
 
     def _heuristic_predict(
         self, feature_vector: np.ndarray

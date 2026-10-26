@@ -130,9 +130,9 @@ class VerificationExpertSystem:
 
     Reasoning Cycle:
       1. Working Memory Ingestion: Populates working memory with facts from vision & ML pipeline.
-      2. Agenda Activation: Evaluates Rule 1 through Rule 5 against working memory.
+      2. Agenda Activation: Evaluates central bank physical security rules (Rules 1 - 4).
       3. Conflict Resolution & Penalty Accumulation: Weighted scoring based on rule severity.
-      4. Goal State Derivation: Asserts neuro-symbolic consensus verdict (GENUINE, SUSPICIOUS, COUNTERFEIT).
+      4. Goal State Derivation: Asserts central bank authenticity verdict (GENUINE, SUSPICIOUS, COUNTERFEIT).
     """
 
     def __init__(
@@ -420,7 +420,7 @@ class VerificationExpertSystem:
         )
 
         # ======================================================================
-        # RULE 5 (CO4): AI Machine Learning Counterfeit Consensus
+        # AI Machine Learning Feature Attribution (Forensic Exploration - CO4)
         # ======================================================================
         ai_verdict: Optional[Verdict] = None
         ai_confidence = 0.0
@@ -439,68 +439,19 @@ class VerificationExpertSystem:
                 forensic_features, is_ai_gen
             )
 
-            r5_passed = is_ai_gen
-            if r5_passed:
-                r5_explanation = (
-                    f"Machine Learning Authenticity Engine ({ai_model_type.upper()}) predicts "
-                    f"GENUINE with {ai_genuine_prob*100:.1f}% confidence."
-                )
-                penalty_r5 = 0.0
-            else:
-                r5_explanation = (
-                    f"Machine Learning Authenticity Engine ({ai_model_type.upper()}) flags "
-                    f"banknote as COUNTERFEIT ({(1.0 - ai_genuine_prob)*100:.1f}% counterfeit confidence)."
-                )
-                penalty_r5 = 35.0
-                critical_failures += 1
-
-            total_penalty += penalty_r5
-
-            checklist.append(
-                RuleEvaluationResult(
-                    rule_id="RULE_5_AI_CLASSIFIER_CONSENSUS",
-                    rule_name="AI Supervised Counterfeit Classifier Consensus",
-                    severity=RuleSeverity.CRITICAL,
-                    passed=r5_passed,
-                    observed_value=f"{ai_verdict.value} ({ai_genuine_prob*100:.1f}%)",
-                    expected_threshold="GENUINE (Prob >= 50.0%)",
-                    explanation=r5_explanation,
-                    score_penalty=penalty_r5,
-                )
-            )
-
         # ======================================================================
-        # NEURO-SYMBOLIC FORWARD-CHAINING VERDICT RESOLUTION
+        # FORWARD-CHAINING VERDICT RESOLUTION (CENTRAL BANK PHYSICAL RULES)
         # ======================================================================
         passed_rules = sum(1 for r in checklist if r.passed)
         total_rules = len(checklist)
         authenticity_score = max(0.0, min(100.0, 100.0 - total_penalty))
 
-        # Blend rule confidence with AI confidence
-        if ai_verdict is not None:
-            overall_confidence = round(
-                float(0.5 * (authenticity_score / 100.0) + 0.5 * ai_genuine_prob), 3
-            )
-        else:
-            overall_confidence = round(
-                float((authenticity_score / 100.0) * working_memory["confidence"]), 3
-            )
-
-        # Neuro-symbolic consensus status
-        symbolic_passed_all = (critical_failures == 0 and total_penalty < 20.0)
-        if ai_verdict is not None:
-            if symbolic_passed_all and ai_verdict == Verdict.GENUINE:
-                neuro_status = "Full Consensus: Authentic (Expert Rules & Machine Learning Concur)"
-            elif not symbolic_passed_all and ai_verdict == Verdict.COUNTERFEIT:
-                neuro_status = "Full Consensus: Counterfeit Detected (Expert Rules & Machine Learning Concur)"
-            elif ai_verdict == Verdict.GENUINE and not symbolic_passed_all:
-                neuro_status = "Divergence Warning: AI Predicts Genuine but Physical Rules Failed"
-            else:
-                neuro_status = "Divergence Warning: Physical Rules Passed but AI Model Flags Counterfeit"
-        else:
-            neuro_status = "Symbolic Forward-Chaining Verification (No AI Classifier Bound)"
+        overall_confidence = round(
+            float((authenticity_score / 100.0) * working_memory["confidence"]), 3
+        )
 
         if passed_rules == total_rules and critical_failures == 0:
+            neuro_status = "Authentic Banknote (All Security Rules Verified)"
             verdict = Verdict.GENUINE
             summary = (
                 f"All {total_rules} central bank verification rules successfully validated. "
@@ -508,6 +459,7 @@ class VerificationExpertSystem:
                 f"authentic latent watermark, and compliant dimensions."
             )
         elif critical_failures >= 2 or total_penalty >= 55.0:
+            neuro_status = "Counterfeit Detected (Security Rule Violation)"
             verdict = Verdict.COUNTERFEIT
             failed_names = [r.rule_name for r in checklist if not r.passed]
             summary = (
@@ -515,6 +467,7 @@ class VerificationExpertSystem:
                 f"{', '.join(failed_names)}. Note rejected by forward-chaining expert rules."
             )
         else:
+            neuro_status = "Suspicious Currency (Secondary Verification Recommended)"
             verdict = Verdict.SUSPICIOUS
             failed_names = [r.rule_name for r in checklist if not r.passed]
             summary = (

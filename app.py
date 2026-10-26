@@ -300,8 +300,8 @@ cache_resource = getattr(
 
 
 @cache_resource
-def load_system_resources() -> Tuple[DenominationClassifier, CounterfeitDetectorAI, VerificationExpertSystem]:
-    """Loads the trained Decision Tree model, Counterfeit AI Suite, and initializes the Expert System."""
+def load_system_models() -> Tuple[DenominationClassifier, CounterfeitDetectorAI]:
+    """Loads the trained Decision Tree model and Counterfeit AI Suite."""
     denom_model_path = os.path.join("models", "denomination_tree.joblib")
     counterfeit_model_path = os.path.join("models", "counterfeit_ai_model.joblib")
 
@@ -317,11 +317,16 @@ def load_system_resources() -> Tuple[DenominationClassifier, CounterfeitDetector
     if os.path.exists(counterfeit_model_path):
         counterfeit_ai.load(counterfeit_model_path)
 
-    expert_system = VerificationExpertSystem(tolerance_pct=0.10, counterfeit_detector=counterfeit_ai)
-    return classifier, counterfeit_ai, expert_system
+    return classifier, counterfeit_ai
 
 
-classifier, counterfeit_ai, expert_system = load_system_resources()
+classifier, counterfeit_ai = load_system_models()
+
+# Initialize forward-chaining expert system directly to ensure fresh rules
+import importlib
+import expert_system as es_mod
+importlib.reload(es_mod)
+expert_system = es_mod.VerificationExpertSystem(tolerance_pct=0.10, counterfeit_detector=counterfeit_ai)
 
 
 # -----------------------------------------------------------------------------
@@ -338,7 +343,6 @@ st.markdown(
             <span class="curriculum-tag">CO1: PEAS Agent Modeling</span>
             <span class="curriculum-tag">CO3: Forward-Chaining Expert System</span>
             <span class="curriculum-tag">CO4: Supervised Ensemble & Deep MLP Neural Net</span>
-            <span class="curriculum-tag">CO4: Decision Tree & K-Means Ribbon Clustering</span>
             <span class="curriculum-tag">CV: 4-Point Homography & Color Constancy</span>
         </div>
     </div>
@@ -440,7 +444,7 @@ with st.sidebar:
     enable_wb = st.checkbox("Enable Gray-World Color Constancy", value=True)
 
     st.markdown("---")
-    st.markdown("### 🤖 Counterfeit AI Suite (CO4)")
+    st.markdown("### 🤖 Local Counterfeit AI Suite (CO4)")
     ai_engine_map = {
         "Ensemble (Soft-Voting: RF + MLP + GBDT)": "ensemble",
         "Deep MLP Neural Network (64-32-16 ReLU)": "mlp",
@@ -448,7 +452,7 @@ with st.sidebar:
         "Gradient Boosting Machine (GBDT)": "gbdt",
     }
     selected_engine_label = st.selectbox(
-        "Active AI Classifier Engine:",
+        "Active Local AI Classifier:",
         list(ai_engine_map.keys()),
         index=0,
         help="Switch between different Supervised AI paradigms for banknote authenticity verification.",
@@ -636,7 +640,6 @@ report = expert_system.evaluate(
 
 elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 
-
 # -----------------------------------------------------------------------------
 # Calibration & Quality HUD
 # -----------------------------------------------------------------------------
@@ -674,8 +677,7 @@ denom_info = DENOMINATION_SPECS.get(pred_denom, DENOMINATION_SPECS["500"])
 col_verdict, col_metrics = st.columns([1.5, 1.1])
 
 ai_prob_pct = report.ai_genuine_prob * 100.0
-ai_status_tag = "AUTHENTIC" if report.ai_genuine_prob >= 0.50 else "COUNTERFEIT"
-ai_badge_color = "#00F59B" if report.ai_genuine_prob >= 0.50 else "#FF3366"
+ai_badge_color = "#00F59B" if report.ai_genuine_prob >= 0.50 else "#FF6B8B"
 
 with col_verdict:
     if report.verdict == Verdict.GENUINE:
@@ -690,8 +692,8 @@ with col_verdict:
                     {report.summary_explanation}
                 </div>
                 <div style="margin-top: 12px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
-                    <span class="curriculum-tag" style="border-color: {ai_badge_color}; color: {ai_badge_color}; font-size: 0.8rem;">
-                        🤖 {report.ai_model_name}: {ai_status_tag} ({ai_prob_pct:.1f}%)
+                    <span class="curriculum-tag" style="border-color: #00F59B; color: #00F59B; font-size: 0.8rem;">
+                        📋 Central Bank Rules: {report.rules_passed_count}/{report.rules_total_count} Passed
                     </span>
                     <span class="curriculum-tag" style="border-color: #64D2FF; color: #64D2FF; font-size: 0.8rem;">
                         ⚖️ {report.neuro_symbolic_status}
@@ -713,8 +715,8 @@ with col_verdict:
                     {report.summary_explanation}
                 </div>
                 <div style="margin-top: 12px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
-                    <span class="curriculum-tag" style="border-color: {ai_badge_color}; color: {ai_badge_color}; font-size: 0.8rem;">
-                        🤖 {report.ai_model_name}: {ai_status_tag} ({ai_prob_pct:.1f}%)
+                    <span class="curriculum-tag" style="border-color: #FF3366; color: #FF3366; font-size: 0.8rem;">
+                        📋 Central Bank Rules: {report.rules_passed_count}/{report.rules_total_count} Passed
                     </span>
                     <span class="curriculum-tag" style="border-color: #FF3366; color: #FF6B8B; font-size: 0.8rem;">
                         ⚖️ {report.neuro_symbolic_status}
@@ -736,8 +738,8 @@ with col_verdict:
                     {report.summary_explanation}
                 </div>
                 <div style="margin-top: 12px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
-                    <span class="curriculum-tag" style="border-color: {ai_badge_color}; color: {ai_badge_color}; font-size: 0.8rem;">
-                        🤖 {report.ai_model_name}: {ai_status_tag} ({ai_prob_pct:.1f}%)
+                    <span class="curriculum-tag" style="border-color: #FFB800; color: #FFB800; font-size: 0.8rem;">
+                        📋 Central Bank Rules: {report.rules_passed_count}/{report.rules_total_count} Passed
                     </span>
                     <span class="curriculum-tag" style="border-color: #FFB800; color: #FFB800; font-size: 0.8rem;">
                         ⚖️ {report.neuro_symbolic_status}
@@ -900,7 +902,7 @@ st.markdown("### 🧠 Forensic Machine Learning & Feature Analysis (CO4)")
 
 ml_tab1, ml_tab2, ml_tab3, ml_tab4 = st.tabs(
     [
-        "🤖 AI Counterfeit Model & Neural Verification",
+        "🤖 Local AI Counterfeit Model & Neural Verification",
         "🧵 K-Means Security Thread Segmentation",
         "🌳 Decision Tree Denomination Classifier",
         "💧 Watermark & Color Moment Profiles",
@@ -930,8 +932,8 @@ with ml_tab1:
             f"""
             <div style="margin-top: 10px; font-size: 0.88rem; color: #CBD5E1; background: rgba(255,255,255,0.04); padding: 12px; border-radius: 8px;">
                 <div><b>Active Engine:</b> <code>{report.ai_model_name}</code></div>
-                <div style="margin-top: 4px;"><b>Consensus:</b> <span style="color: {'#00F59B' if 'Authentic' in report.neuro_symbolic_status else '#FF6B8B'};">{report.neuro_symbolic_status}</span></div>
-                <div style="margin-top: 4px;"><b>Rule 5 Outcome:</b> {'PASSED (Consensus Reached)' if report.diagnostic_checklist[-1].passed else 'FAILED (Defect Flagged)'}</div>
+                <div style="margin-top: 4px;"><b>Prediction:</b> <span style="color: {'#00F59B' if ai_prob >= 0.50 else '#FF6B8B'};">{'AUTHENTIC' if ai_prob >= 0.50 else 'COUNTERFEIT'} ({ai_prob * 100:.1f}%)</span></div>
+                <div style="margin-top: 4px;"><b>Role:</b> Forensic Feature Attribution & XAI (Independent Supervised ML)</div>
             </div>
             """,
             unsafe_allow_html=True,

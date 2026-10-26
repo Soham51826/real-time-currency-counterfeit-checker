@@ -5,11 +5,11 @@
 [![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.9.0-orange.svg)](https://scikit-learn.org)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.61.1-red.svg)](https://streamlit.io)
 
-A production-grade, modular, and fully runnable Python application engineered to detect currency denominations and rigorously inspect security features for counterfeit detection in real time.
+A production-grade, modular, and fully runnable Python application engineered to detect currency denominations and rigorously inspect security features for counterfeit detection in real time using **Hybrid Symbolic Expert Rules, Supervised Machine Learning, and Computer Vision**.
 
 Designed and structured in strict compliance with Academic AI Curriculum Standards:
 - **CO1 (Agent Modeling)**: Formal PEAS (Performance, Environment, Actuators, Sensors) framework for the Automated Banknote Inspection Agent (ABIA).
-- **CO3 (Knowledge Representation & Expert Systems)**: Forward-chaining inference engine evaluating formal central bank specifications with neuro-symbolic consensus.
+- **CO3 (Knowledge Representation & Expert Systems)**: Forward-chaining inference engine evaluating formal central bank specifications across physical security rules.
 - **CO4 (Supervised & Unsupervised Machine Learning)**:
   - **Supervised Denomination AI**: Decision Tree Classifier with entropy information gain on statistical color moments and aspect ratio (97.5% accuracy).
   - **Supervised Counterfeit AI Suite**: 4-model architecture suite (Soft-Voting Calibrated Ensemble, Deep Multi-Layer Perceptron Neural Net, Random Forest, and Gradient Boosting) trained on 3,200 forensic samples across 16 standardized physical features (100% holdout accuracy, 99.92% 5-fold CV).
@@ -33,30 +33,31 @@ Designed and structured in strict compliance with Academic AI Curriculum Standar
                            │  - 16-D Forensic Feature Vec   │
                            └───────┬──────────────┬─────────┘
                                    │              │
-             Extracted HSV Moments │              │ Standardized 16-D Vector
+             Extracted HSV Moments │              │ Standardized 16-D Vector & Cropped ROIs
+             & Warped Canvas Image │              │
                                    ▼              ▼
-                 ┌──────────────────────┐  ┌───────────────────────┐
-                 │ Module 2: Classifier │  │ Module 2B: Counterfeit│
-                 │ Decision Tree (CO4)  │  │ AI Suite (CO4)        │
-                 │ Denomination Predict │  │ Ensemble / MLP / RF   │
-                 └──────────┬───────────┘  └──────────┬────────────┘
-                            │ Denomination            │ Authenticity Prob & XAI
-                            └──────────────┬──────────┘
-                                           ▼
-                           ┌────────────────────────────────┐
-                           │ Module 3: Expert System Engine │
-                           │ - Forward-Chaining (CO3)       │
-                           │ - Rules 1-5 Verification       │
-                           │ - Neuro-Symbolic Consensus     │
-                           └───────────────┬────────────────┘
-                                           │
-                           ┌───────────────▼────────────────┐
-                           │ Module 4: Streamlit UI         │
-                           │ - Real-time Visual Overlays    │
-                           │ - Diagnostic Rule Checklist    │
-                           │ - AI Model Architecture Bench  │
-                           │ - Authenticity Verdict Banner  │
-                           └────────────────────────────────┘
+     ┌────────────────────────┐  ┌───────────────────────┐  ┌─────────────────────────┐
+     │  Decision Tree (CO4)   │  │ AI Suite (CO4)        │  │ Multimodal Vision AI    │
+     └──────────┬─────────────┘  └──────────┬────────────┘  └───────────┬─────────────┘
+                │ Denomination              │ Authenticity Prob & XAI   │ Forensic Verdict,
+                └──────────────┬────────────┘                           │ Audit Checklist &
+                               ▼                                        │ Live Viva Q&A Chat
+               ┌────────────────────────────────┐                       │
+               │ Module 3: Expert System Engine │                       │
+               │ - Forward-Chaining (CO3)       │                       │
+               │ - Rules 1-5 Verification       │                       │
+               │ - Neuro-Symbolic Consensus     │                       │
+               └───────────────┬────────────────┘                       │
+                               │                                        │
+                               └────────────────┬───────────────────────┘
+                                                ▼
+                               ┌────────────────────────────────┐
+                               │ Module 4: Streamlit UI         │
+                               │ - Real-time Visual Overlays    │
+                               │ - Tri-Color Authenticity Banner│
+                               │ - Local AI Forensic Tab Panels │
+                               │ - Interactive Forensic Chat    │
+                               └────────────────────────────────┘
 ```
 
 ---
@@ -75,15 +76,14 @@ The system models an autonomous rational agent encapsulated as `AgentPEAS` in `e
 
 ---
 
-### 2. Forward-Chaining Expert System & Neuro-Symbolic Consensus (CO3)
-Located in `expert_system.py`, the `VerificationExpertSystem` implements an AI forward-chaining cycle over 5 production rules:
+### 2. Forward-Chaining Expert System & Central Bank Rule Verification (CO3)
+Located in `expert_system.py`, the `VerificationExpertSystem` implements an AI forward-chaining cycle over 4 formal physical security rules:
 1. **Working Memory Ingestion**: Populates facts (aspect ratio, K-Means continuity percentage, watermark intensity variance, entropy, CIE-Lab Delta-E, AI authenticity probability).
 2. **Rule Base Evaluation**:
    - **Rule 1 (Physical Dimensions)**: Verifies note width-to-height aspect ratio against official specifications within $\pm 10\%$ perspective tolerance.
    - **Rule 2 (Security Thread Continuity)**: Verifies segmented metallic ribbon maintains $\ge 65\%$ continuity (transmitted) or 3-8 periodic windows with $\ge 45\%$ continuity (reflected).
    - **Rule 3 (Substrate Color Consistency)**: Validates that mean Hue and Saturation fall within the chromaticity envelope of the predicted denomination.
    - **Rule 4 (Watermark Latent Contrast)**: Checks pixel intensity variance ($25 \le \sigma^2 \le 1400$) and dynamic range ($\ge 26.5$) in the watermark window to confirm multi-tone latent portrait presence.
-   - **Rule 5 (AI Supervised Classifier Consensus)**: Validates that the active Supervised Counterfeit AI model predicts Authenticity Probability $\ge 0.50$.
 3. **Neuro-Symbolic Consensus**:
    - `GENUINE` (Emerald Green): Both symbolic rules and Machine Learning model concur (Score $\ge 85\%$ & AI Authenticity $\ge 50\%$).
    - `SUSPICIOUS` (Amber Yellow): Divergent conclusion between rules and AI model, or soft wear degradation; prompts manual cashier review.
@@ -128,11 +128,13 @@ Located in `expert_system.py`, the `VerificationExpertSystem` implements an AI f
 
 ---
 
+
 ## 📂 Project Structure
 
 ```
 Real-Time Currency and Counterfeit checker/
-├── app.py                         # Module 4: Modern Streamlit Forensic Dashboard & UI
+├── .env.example                   # Template environment configuration file
+├── app.py                         # Module 4: Modern Streamlit Forensic Dashboard & Dual UI
 ├── vision_pipeline.py             # Module 1: OpenCV Preprocessing, Homography, K-Means & 16-D Features
 ├── classifier.py                  # Module 2: Supervised Decision Tree Denomination Classifier
 ├── counterfeit_classifier.py      # Module 2B: Supervised Counterfeit AI Suite (Ensemble, MLP, RF, GBDT)
@@ -142,7 +144,7 @@ Real-Time Currency and Counterfeit checker/
 ├── test_inspect_samples.py        # Advanced interactive sample inspection utility
 ├── generate_presentation_pptx.py  # Presentation generator (12-slide dark-mode technical defense)
 ├── generate_report_docx.py        # Academic project report generator (.docx)
-├── requirements.txt               # Pinned production dependencies
+├── requirements.txt               # Pinned production dependencies (inc. google-generativeai, python-dotenv)
 ├── data/
 │   ├── currency_features.csv      # Denomination training data (1,600 samples)
 │   └── counterfeit_detection_dataset.csv # 16-D Counterfeit forensic dataset (3,200 samples)
@@ -191,13 +193,16 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Run Automated Verification Tests
-Executes full regression tests across all genuine and counterfeit samples:
+  ```env
+  ```
+
+### 5. Run Automated Verification Tests
+Executes full regression tests across all genuine and counterfeit test cases:
 ```bash
 python test_pipeline.py
 ```
 
-### 5. Launch the Forensic Dashboard
+### 6. Launch the Forensic Dashboard
 - **Windows One-Click**: Simply double-click `run_app.bat` (automatically detects `.venv`, system Python, or PATH Streamlit).
 - **Cross-Platform Terminal**:
   ```bash

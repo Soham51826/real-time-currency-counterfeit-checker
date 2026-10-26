@@ -19,27 +19,38 @@ from vision_pipeline import (
     extract_color_features,
     analyze_security_strip,
     analyze_watermark,
+    extract_forensic_features,
 )
 from classifier import DenominationClassifier
+from counterfeit_classifier import CounterfeitDetectorAI
 from expert_system import VerificationExpertSystem, Verdict
 
 def inspect_all_samples(samples_dir: str = "samples"):
-    print("=" * 85)
-    print("CURRENCYGUARD AI: SAMPLE INSPECTION UTILITY")
-    print("=" * 85)
+    print("=" * 100)
+    print("CURRENCYGUARD AI: ADVANCED NEURO-SYMBOLIC SAMPLE INSPECTION UTILITY")
+    print("=" * 100)
     
     if not os.path.exists(samples_dir):
         print(f"[ERROR] Samples directory not found at: {samples_dir}")
         return
         
-    model_path = os.path.join("models", "denomination_tree.joblib")
+    denom_model_path = os.path.join("models", "denomination_tree.joblib")
     classifier = DenominationClassifier()
-    if os.path.exists(model_path):
-        classifier.load(model_path)
+    if os.path.exists(denom_model_path):
+        classifier.load(denom_model_path)
     else:
-        print(f"[WARNING] Model weights not found at {model_path}.")
+        print(f"[WARNING] Denomination model weights not found at {denom_model_path}.")
 
-    expert_system = VerificationExpertSystem(tolerance_pct=0.08)
+    counterfeit_model_path = os.path.join("models", "counterfeit_ai_model.joblib")
+    counterfeit_ai = CounterfeitDetectorAI(model_type="ensemble")
+    if os.path.exists(counterfeit_model_path):
+        counterfeit_ai.load(counterfeit_model_path)
+        print("[PASS] Counterfeit AI Suite loaded successfully.")
+    else:
+        print(f"[WARNING] Counterfeit AI model weights not found at {counterfeit_model_path}.")
+        counterfeit_ai = None
+
+    expert_system = VerificationExpertSystem(tolerance_pct=0.08, counterfeit_ai=counterfeit_ai)
 
     sample_files = sorted([f for f in os.listdir(samples_dir) if f.lower().endswith((".png", ".jpg", ".jpeg"))])
     print(f"Discovered {len(sample_files)} sample files in '{samples_dir}/':\n")
@@ -75,6 +86,16 @@ def inspect_all_samples(samples_dir: str = "samples"):
         strip_metrics = analyze_security_strip(rois["security_strip"]["patch"], n_clusters=3)
         wm_metrics = analyze_watermark(rois["watermark"]["patch"])
 
+        forensic_features = extract_forensic_features(
+            warped_note=warped,
+            pred_denom=pred_denom,
+            aspect_ratio=aspect_ratio,
+            security_strip_metrics=strip_metrics,
+            watermark_metrics=wm_metrics,
+            color_features=color_feats,
+            rois=rois,
+        )
+
         report = expert_system.evaluate(
             predicted_denomination=pred_denom,
             classifier_confidence=pred_conf,
@@ -82,19 +103,24 @@ def inspect_all_samples(samples_dir: str = "samples"):
             security_strip_metrics=strip_metrics,
             watermark_metrics=wm_metrics,
             color_features=color_feats,
+            forensic_features=forensic_features,
             scan_mode=scan_mode,
         )
 
+        ai_prob = report.ai_authenticity_prob * 100.0 if report.ai_authenticity_prob is not None else 0.0
+        ai_verdict = report.ai_verdict.value if isinstance(report.ai_verdict, Verdict) else (str(report.ai_verdict) if report.ai_verdict else "N/A")
         status_tag = f"[{report.verdict.value}]"
-        failed_count = report.rules_total_count - report.rules_passed_count
-        print(f"[{idx:02d}] {fname:<32} -> INR {pred_denom:<4} ({pred_conf*100:5.1f}%) | "
-              f"Strip: {strip_metrics['continuity_pct']:5.1f}% | "
-              f"WM Var: {wm_metrics['variance']:6.1f} | "
-              f"{status_tag:<12} (Failed Rules: {failed_count})")
+        
+        print(f"[{idx:02d}] {fname:<30} | INR {pred_denom:<4} ({pred_conf*100:5.1f}%) | "
+              f"AI: {ai_verdict:<11} ({ai_prob:5.1f}%) | "
+              f"Rules: {report.rules_passed_count}/{report.rules_total_count} | "
+              f"Consensus: {status_tag}")
+        if report.verdict == Verdict.COUNTERFEIT:
+            print(f"     -> Failed Rules: {[r.rule_name for r in report.rules if not r.passed]}")
 
-    print("\n" + "=" * 85)
+    print("\n" + "=" * 100)
     print("INSPECTION COMPLETE")
-    print("=" * 85)
+    print("=" * 100)
 
 if __name__ == "__main__":
     inspect_all_samples()

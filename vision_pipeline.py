@@ -592,6 +592,7 @@ def analyze_security_strip(
 
     continuity_pct = float((row_hits / max(1, h)) * 100.0)
     mean_width = float(np.mean(row_widths)) if row_widths else 0.0
+    std_width = float(np.std(row_widths)) if row_widths else 0.0
 
     # Windowed segment count (connected runs of metallic scanlines)
     window_count = 0
@@ -623,6 +624,7 @@ def analyze_security_strip(
         "cluster_labels": label_map,
         "cluster_centers": cluster_centers_bgr,
         "thread_width_mean": round(mean_width, 2),
+        "thread_width_std": round(std_width, 2),
         "row_density": row_density,
         "strip_cluster_id": best_cluster,
         "window_count": window_count,
@@ -664,6 +666,12 @@ def analyze_watermark(watermark_roi: np.ndarray) -> Dict[str, Any]:
     p95 = np.percentile(gray, 95)
     dynamic_range = float(p95 - p5)
 
+    # Shannon Texture Entropy of the watermark window
+    hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).flatten()
+    hist = hist / (float(np.sum(hist)) + 1e-7)
+    hist_nonzero = hist[hist > 0]
+    entropy_val = float(-np.sum(hist_nonzero * np.log2(hist_nonzero)))
+
     # Authentic banknotes exhibit subtle multi-tone latent gradients and paper texture.
     # Plain paper counterfeits have flat paper (variance < 25, dyn range < 22).
     # Real camera captures with sensor noise and genuine multi-tone watermarks reach up to 6500 variance.
@@ -673,6 +681,7 @@ def analyze_watermark(watermark_roi: np.ndarray) -> Dict[str, Any]:
         "variance": round(variance, 2),
         "laplacian_var": round(laplacian_var, 2),
         "dynamic_range": round(dynamic_range, 2),
+        "entropy": round(entropy_val, 2),
         "has_latent_features": has_latent,
     }
 
@@ -744,3 +753,144 @@ def draw_roi_overlays(
         )
 
     return annotated
+
+
+def compute_microtexture_edge_density(warped_note: np.ndarray) -> float:
+    """
+    Measures intaglio microprinting edge density across the central note field.
+    Genuine notes have crisp intaglio engraving lines; flat counterfeits appear blurred.
+    """
+    h, w = warped_note.shape[:2]
+    central_patch = warped_note[int(h * 0.15) : int(h * 0.85), int(w * 0.25) : int(w * 0.75)]
+    gray = cv2.cvtColor(central_patch, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 70, 150)
+    density = float(np.count_nonzero(edges) / (edges.size + 1e-7))
+    return round(density, 4)
+
+
+def compute_color_delta_e(color_features: Dict[str, Any], denomination: str) -> float:
+    """
+    Computes perceptual CIE-Lab Delta-E color distance between observed note substrate
+    and standard central bank denomination reference color.
+    """
+    reference_bgr = {
+        "100": (215, 175, 185),   # Lavender
+        "200": (70, 205, 245),    # Bright Warm Yellow
+        "500": (175, 192, 180),   # Stone Olive Grey
+        "2000": (170, 105, 225),  # Vivid Magenta
+    }
+    bgr_target = reference_bgr.get(denomination, (175, 192, 180))
+    target_mat = np.array([[bgr_target]], dtype=np.uint8)
+    target_lab = cv2.cvtColor(target_mat, cv2.COLOR_BGR2Lab)[0, 0].astype(np.float32)
+
+    # Use observed substrate mean RGB to evaluate perceptual chromaticity
+    r = int(np.clip(color_features.get("r_mean", 175.0), 0, 255))
+    g = int(np.clip(color_features.get("g_mean", 192.0), 0, 255))
+    b = int(np.clip(color_features.get("b_mean", 180.0), 0, 255))
+    obs_mat = np.array([[[b, g, r]]], dtype=np.uint8)
+    obs_lab = cv2.cvtColor(obs_mat, cv2.COLOR_BGR2Lab)[0, 0].astype(np.float32)
+
+    delta_e = float(np.linalg.norm(obs_lab - target_lab))
+    return round(delta_e, 2)
+
+
+def extract_forensic_features(
+    warped_note: np.ndarray,
+    rois: Optional[Dict[str, Dict[str, Any]]] = None,
+    strip_analysis: Optional[Dict[str, Any]] = None,
+    watermark_analysis: Optional[Dict[str, Any]] = None,
+    color_features: Optional[Dict[str, Any]] = None,
+    aspect_ratio: Optional[float] = None,
+    predicted_denomination: str = "500",
+    **kwargs: Any,
+) -> np.ndarray:
+    """
+    Constructs the 16-element standardized forensic feature vector for the
+    AI Machine Learning Counterfeit Detector (CounterfeitDetectorAI).
+
+    Returns:
+        np.ndarray: 1D float32 array matching FORENSIC_FEATURE_COLUMNS.
+    """
+    from classifier import DENOMINATION_SPECS
+
+    predicted_denomination = str(kwargs.get("pred_denom", predicted_denomination))
+    strip_analysis = strip_analysis or kwargs.get("security_strip_metrics") or {}
+    watermark_analysis = watermark_analysis or kwargs.get("watermark_metrics") or {}
+    color_features = color_features or kwargs.get("color_features") or {}
+    aspect_ratio = aspect_ratio if aspect_ratio is not None else kwargs.get("aspect_ratio")
+
+    denom_spec = DENOMINATION_SPECS.get(predicted_denomination, DENOMINATION_SPECS["500"])
+    target_ar = float(denom_spec["aspect_ratio"])
+    obs_ar = float(aspect_ratio) if aspect_ratio is not None else target_ar
+
+    # 1. aspect_ratio_error
+    ar_error = float(abs(obs_ar - target_ar) / target_ar)
+
+    # 2. strip continuity
+    strip_continuity = float(strip_analysis.get("continuity_pct", 0.0))
+
+    # 3. strip window count
+    strip_window_count = float(strip_analysis.get("window_count", 0))
+
+    # 4. strip width mean
+    strip_width_mean = float(strip_analysis.get("thread_width_mean", 0.0))
+
+    # 5. strip width std
+    strip_width_std = float(strip_analysis.get("thread_width_std", 0.0))
+
+    # 6. watermark variance
+    watermark_variance = float(watermark_analysis.get("variance", 0.0))
+
+    # 7. watermark dynamic range
+    watermark_dyn_range = float(watermark_analysis.get("dynamic_range", 0.0))
+
+    # 8. watermark laplacian var
+    watermark_laplacian = float(watermark_analysis.get("laplacian_var", 0.0))
+
+    # 9. watermark entropy
+    watermark_entropy = float(watermark_analysis.get("entropy", 4.3))
+
+    # 10. color hue dev
+    h_min, h_max = denom_spec["hsv_bounds"]["h_mean"]
+    target_hue = (h_min + h_max) / 2.0
+    obs_hue = float(color_features.get("wb_h_mean", color_features.get("h_mean", target_hue)))
+    hue_dev = float(abs(obs_hue - target_hue))
+
+    # 11. color sat mean
+    color_sat_mean = float(color_features.get("s_mean", 0.0))
+
+    # 12. color sat std
+    color_sat_std = float(color_features.get("s_std", 0.0))
+
+    # 13. color val mean
+    color_val_mean = float(color_features.get("v_mean", 0.0))
+
+    # 14. color delta_e
+    color_delta_e = compute_color_delta_e(color_features, predicted_denomination)
+
+    # 15. microtexture edge density
+    microtexture_edge_density = compute_microtexture_edge_density(warped_note)
+
+    # 16. denomination numerical code
+    denom_code_map = {"100": 1.0, "200": 2.0, "500": 5.0, "2000": 20.0}
+    denom_code = denom_code_map.get(predicted_denomination, 5.0)
+
+    vec = [
+        ar_error,
+        strip_continuity,
+        strip_window_count,
+        strip_width_mean,
+        strip_width_std,
+        watermark_variance,
+        watermark_dyn_range,
+        watermark_laplacian,
+        watermark_entropy,
+        hue_dev,
+        color_sat_mean,
+        color_sat_std,
+        color_val_mean,
+        color_delta_e,
+        microtexture_edge_density,
+        denom_code,
+    ]
+    return np.array(vec, dtype=np.float32)

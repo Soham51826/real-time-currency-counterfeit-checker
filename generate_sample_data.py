@@ -23,6 +23,10 @@ from classifier import (
     DENOMINATION_SPECS,
     FEATURE_COLUMNS,
 )
+from counterfeit_classifier import (
+    CounterfeitDetectorAI,
+    FORENSIC_FEATURE_COLUMNS,
+)
 from vision_pipeline import CANVAS_WIDTH, CANVAS_HEIGHT
 
 
@@ -98,9 +102,234 @@ def train_and_save_baseline_model(
     eval_res = clf.evaluate(X_test, y_test)
 
     clf.save(model_path)
-    print(f"[OK] Model successfully trained and saved to: {model_path}")
+    print(f"[OK] Denomination Model successfully trained and saved to: {model_path}")
     print(f"     Holdout Test Accuracy: {eval_res['accuracy']*100:.2f}%")
     return eval_res
+
+
+def generate_counterfeit_dataset(
+    n_samples: int = 3200, random_seed: int = 42
+) -> pd.DataFrame:
+    """
+    Synthesizes a comprehensive forensic dataset of genuine and counterfeit banknote features
+    for training the AI Counterfeit Detection Engine (CounterfeitDetectorAI).
+
+    Distributions:
+      - Genuine notes (50%): Conforming physical aspect ratio, continuous or authentic windowed
+        metallic thread, high-entropy multi-tone watermark, accurate substrate dye.
+      - Counterfeit defect types (50%):
+        * Broken thread / tampered foil (interrupted or low continuity)
+        * Blank / washed watermark (flat paper, low dynamic range, low entropy)
+        * Stamped / harsh toner watermark (abnormal contrast spikes)
+        * Substrate dye / altered ink counterfeit (high CIE-Lab Delta-E and Hue shift)
+        * Bad dimensional cuts (cutting errors, non-standard aspect ratio)
+        * Blurred inkjet photocopy (low microtexture edge density)
+    """
+    np.random.seed(random_seed)
+    n_genuine = n_samples // 2
+    n_fake = n_samples - n_genuine
+    rows = []
+
+    denoms = ["100", "200", "500", "2000"]
+    denom_code_map = {"100": 1.0, "200": 2.0, "500": 5.0, "2000": 20.0}
+
+    # 1. Synthesize Genuine Banknotes
+    for _ in range(n_genuine):
+        denom = str(np.random.choice(denoms))
+        spec = DENOMINATION_SPECS[denom]
+        d_code = denom_code_map[denom]
+
+        # Conforming aspect ratio error: mostly crisp orthogonal (< 0.05), with 8% camera perspective tilt
+        if np.random.rand() < 0.08:
+            ar_err = float(np.random.uniform(0.06, 0.32))  # Camera perspective foreshortening
+        else:
+            ar_err = float(np.clip(np.random.exponential(0.008), 0.0, 0.05))
+
+        # Thread: 92% continuous, 8% authentic windowed
+        is_win = np.random.rand() < 0.08
+        if is_win:
+            strip_cont = float(np.random.uniform(40.0, 62.0))
+            strip_win = np.random.randint(3, 8)
+        else:
+            strip_cont = float(np.random.uniform(96.0, 100.0))
+            strip_win = 1
+
+        strip_width_mean = float(np.random.normal(10.5, 1.2))
+        strip_width_std = float(np.random.normal(2.4, 0.4))
+
+        # Watermark: multi-tone latent portrait (matching actual rendered samples)
+        wm_var = float(np.random.uniform(230.0, 480.0) + np.random.normal(0, 15.0))
+        wm_dyn = float(np.random.uniform(30.0, 38.0))
+        wm_lap = float(np.random.uniform(450.0, 1600.0))
+        wm_ent = float(np.random.uniform(4.24, 4.65))
+
+        # Color: Conforming to central bank envelope
+        h_min, h_max = spec["hsv_bounds"]["h_mean"]
+        s_min, s_max = spec["hsv_bounds"]["s_mean"]
+        v_min, v_max = spec["hsv_bounds"]["v_mean"]
+        h_target = (h_min + h_max) / 2.0
+        h_obs = float(np.random.uniform(h_min, h_max))
+        hue_dev = float(abs(h_obs - h_target)) + float(np.random.uniform(5.0, 25.0))
+        s_mean = float(np.random.uniform(s_min, s_max))
+        s_std = float(np.random.normal(12.0, 2.5))
+        v_mean = float(np.random.uniform(v_min, v_max))
+        
+        # Perceptual CIE-Lab Delta-E (empirically 3.0 to 12.5 for genuine banknotes)
+        delta_e = float(np.clip(np.random.normal(7.5, 2.0), 2.5, 14.0))
+
+        # Microtexture intaglio edge density
+        edge_dens = float(np.random.uniform(0.026, 0.036))
+
+        rows.append({
+            "aspect_ratio_error": round(ar_err, 4),
+            "strip_continuity": round(strip_cont, 2),
+            "strip_window_count": strip_win,
+            "strip_width_mean": round(strip_width_mean, 2),
+            "strip_width_std": round(max(0.1, strip_width_std), 2),
+            "watermark_variance": round(wm_var, 2),
+            "watermark_dynamic_range": round(wm_dyn, 2),
+            "watermark_laplacian_var": round(wm_lap, 2),
+            "watermark_entropy": round(wm_ent, 3),
+            "color_hue_dev": round(hue_dev, 2),
+            "color_sat_mean": round(s_mean, 2),
+            "color_sat_std": round(max(1.0, s_std), 2),
+            "color_val_mean": round(v_mean, 2),
+            "color_delta_e": round(delta_e, 2),
+            "microtexture_edge_density": round(edge_dens, 4),
+            "denomination_code": d_code,
+            "is_genuine": 1,
+            "defect_class": "GENUINE",
+        })
+
+    # 2. Synthesize Counterfeit Banknotes with Diverse Defect Typologies
+    defect_types = [
+        "BROKEN_THREAD",
+        "BLANK_WATERMARK",
+        "STAMPED_WATERMARK",
+        "ALTERED_COLOR",
+        "BAD_DIMENSION",
+        "LOW_QUALITY_PRINT",
+    ]
+
+    for _ in range(n_fake):
+        denom = str(np.random.choice(denoms))
+        spec = DENOMINATION_SPECS[denom]
+        d_code = denom_code_map[denom]
+        defect = str(np.random.choice(defect_types))
+
+        # Baseline defaults
+        ar_err = float(np.clip(np.random.exponential(0.01), 0.0, 0.05))
+        strip_cont = float(np.random.uniform(96.0, 100.0))
+        strip_win = 1
+        strip_width_mean = float(np.random.normal(10.5, 1.2))
+        strip_width_std = float(np.random.normal(2.4, 0.4))
+
+        wm_var = float(np.random.uniform(240.0, 450.0))
+        wm_dyn = float(np.random.uniform(30.0, 36.0))
+        wm_lap = float(np.random.uniform(800.0, 1500.0))
+        wm_ent = float(np.random.uniform(4.25, 4.60))
+
+        h_min, h_max = spec["hsv_bounds"]["h_mean"]
+        s_min, s_max = spec["hsv_bounds"]["s_mean"]
+        v_min, v_max = spec["hsv_bounds"]["v_mean"]
+        h_target = (h_min + h_max) / 2.0
+        h_obs = float(np.random.uniform(h_min, h_max))
+        hue_dev = float(abs(h_obs - h_target)) + float(np.random.uniform(15.0, 35.0))
+        s_mean = float(np.random.uniform(s_min, s_max))
+        s_std = float(np.random.normal(12.0, 2.5))
+        v_mean = float(np.random.uniform(v_min, v_max))
+        delta_e = float(np.clip(np.random.normal(7.5, 2.0), 2.5, 14.0))
+        edge_dens = float(np.random.uniform(0.026, 0.036))
+
+        # Apply specific defect manifestation
+        if defect == "BROKEN_THREAD":
+            # Disrupted, painted, or severed metallic thread
+            strip_cont = float(np.random.uniform(12.0, 52.0))
+            strip_win = int(np.random.choice([0, 2, 4, 6]))
+            strip_width_mean = float(np.random.uniform(8.0, 12.0))
+            strip_width_std = float(np.random.uniform(3.8, 6.5))
+
+        elif defect == "BLANK_WATERMARK":
+            # Flat paper photocopy with unprinted watermark window
+            wm_var = float(np.random.uniform(4.0, 220.0))
+            wm_dyn = float(np.random.uniform(4.0, 25.2))
+            wm_lap = float(np.random.uniform(15.0, 260.0))
+            wm_ent = float(np.random.uniform(2.30, 3.75))
+
+        elif defect == "STAMPED_WATERMARK":
+            # Opaque rubber stamp or harsh inkjet watermark with dark unnatural edges
+            wm_var = float(np.random.uniform(1800.0, 7200.0))
+            wm_dyn = float(np.random.uniform(55.0, 95.0))
+            wm_lap = float(np.random.uniform(2200.0, 6500.0))
+            wm_ent = float(np.random.uniform(4.90, 5.80))
+
+        elif defect == "ALTERED_COLOR":
+            # Incompatible inkjet toner dye, wrong hue, high Delta-E
+            hue_dev = float(np.random.uniform(35.0, 110.0))
+            delta_e = float(np.random.uniform(32.0, 120.0))
+            s_mean = float(np.random.uniform(10.0, 240.0))
+
+        elif defect == "BAD_DIMENSION":
+            # Counterfeit cut to incorrect physical size / distorted ratio
+            ar_err = float(np.random.uniform(0.18, 0.45))
+            strip_width_mean = float(np.random.uniform(14.0, 20.0))
+            wm_var = float(np.random.uniform(520.0, 950.0))
+
+        elif defect == "LOW_QUALITY_PRINT":
+            # Blurred desktop scan / lack of fine intaglio security microprinting
+            edge_dens = float(np.random.uniform(0.005, 0.019))
+            wm_ent = float(np.random.uniform(3.20, 3.85))
+
+        rows.append({
+            "aspect_ratio_error": round(ar_err, 4),
+            "strip_continuity": round(strip_cont, 2),
+            "strip_window_count": strip_win,
+            "strip_width_mean": round(strip_width_mean, 2),
+            "strip_width_std": round(max(0.1, strip_width_std), 2),
+            "watermark_variance": round(wm_var, 2),
+            "watermark_dynamic_range": round(wm_dyn, 2),
+            "watermark_laplacian_var": round(wm_lap, 2),
+            "watermark_entropy": round(wm_ent, 3),
+            "color_hue_dev": round(hue_dev, 2),
+            "color_sat_mean": round(s_mean, 2),
+            "color_sat_std": round(max(1.0, s_std), 2),
+            "color_val_mean": round(v_mean, 2),
+            "color_delta_e": round(delta_e, 2),
+            "microtexture_edge_density": round(edge_dens, 4),
+            "denomination_code": d_code,
+            "is_genuine": 0,
+            "defect_class": defect,
+        })
+
+    df = pd.DataFrame(rows)
+    return df.sample(frac=1.0, random_state=random_seed).reset_index(drop=True)
+
+
+def train_and_save_counterfeit_models(
+    df: pd.DataFrame, model_path: str = "models/counterfeit_ai_model.joblib"
+) -> Dict[str, Any]:
+    """
+    Trains all 4 AI architectures (Ensemble, MLP Neural Network, Random Forest, GBDT)
+    on the synthesized forensic counterfeit dataset and serializes weights.
+    """
+    X = np.array(df[FORENSIC_FEATURE_COLUMNS].values, dtype=np.float32)
+    y = np.array(df["is_genuine"].values, dtype=np.int32)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.25, random_state=42, stratify=y
+    )
+
+    detector = CounterfeitDetectorAI(active_model_type="ensemble")
+    metrics = detector.train_and_evaluate(X_train, y_train, X_test, y_test)
+    detector.save(model_path)
+
+    print(f"[OK] Counterfeit AI Model successfully trained and saved to: {model_path}")
+    for model_name in ["ensemble", "mlp", "rf", "gbdt"]:
+        m = metrics[model_name]
+        print(f"     -> [{model_name.upper():<8}] Accuracy: {m['accuracy']*100:.2f}% | "
+              f"Precision: {m['precision']*100:.2f}% | Recall: {m['recall']*100:.2f}% | "
+              f"F1: {m['f1_score']*100:.2f}% | ROC-AUC: {m['roc_auc']:.4f}")
+    return metrics
 
 
 def render_synthetic_banknote(
@@ -131,9 +360,9 @@ def render_synthetic_banknote(
     denom_spec = DENOMINATION_SPECS.get(denomination, DENOMINATION_SPECS["500"])
     ar = denom_spec["aspect_ratio"]
     h = CANVAS_HEIGHT
-    w = int(round(h * ar))
+    w = round(h * ar)
     if bad_aspect_ratio:
-        w = int(round(h * 1.45))  # Distorted aspect ratio (1.45 vs expected >=2.15)
+        w = round(h * 1.45)  # Distorted aspect ratio (1.45 vs expected >=2.15)
 
     canvas = np.zeros((h, w, 3), dtype=np.uint8)
 
@@ -366,6 +595,17 @@ def generate_all_artifacts() -> None:
     train_and_save_baseline_model(df, model_path=model_path)
 
     print("\n" + "=" * 65)
+    print("STEP 2B: Synthesizing Forensic Counterfeit Dataset & Training AI Suite")
+    print("=" * 65)
+    cf_df = generate_counterfeit_dataset(n_samples=3200)
+    cf_csv_path = os.path.join("data", "counterfeit_detection_dataset.csv")
+    cf_df.to_csv(cf_csv_path, index=False)
+    print(f"[OK] Generated {len(cf_df)} forensic samples: {cf_csv_path}")
+
+    cf_model_path = os.path.join("models", "counterfeit_ai_model.joblib")
+    train_and_save_counterfeit_models(cf_df, model_path=cf_model_path)
+
+    print("\n" + "=" * 65)
     print("STEP 3: Generating Synthetic Visual Banknote Samples (CV & Expert System)")
     print("=" * 65)
 
@@ -394,6 +634,7 @@ def generate_all_artifacts() -> None:
 
     # Generate a full camera perspective scene for genuine ₹500
     gen_500 = cv2.imread(os.path.join("samples", "genuine_500.png"))
+    assert gen_500 is not None, "Failed to load samples/genuine_500.png"
     camera_scene = generate_camera_scene(gen_500)
     camera_scene_path = os.path.join("samples", "camera_desk_scene_500.png")
     cv2.imwrite(camera_scene_path, camera_scene)

@@ -170,7 +170,7 @@ def create_presentation():
     p1.space_after = Pt(8)
     
     p1_sub = tf1.add_paragraph()
-    p1_sub.text = "An Autonomous Rational Agent Integrating Homography Rectification, Decision Trees (CO4), K-Means Clustering (CO4), and Rule-Based Expert Systems (CO3)"
+    p1_sub.text = "An Autonomous Rational Agent Integrating Homography Rectification, Denomination Trees (CO4), Deep MLP & Ensemble Counterfeit AI (CO4), and Neuro-Symbolic Expert Systems (CO3)"
     p1_sub.font.name = "Calibri"
     p1_sub.font.size = Pt(13)
     p1_sub.font.italic = True
@@ -193,7 +193,7 @@ def create_presentation():
     # 3 Contributor Cards
     members = [
         ("SOHAM", "Roll: 70012023001", "Module 1: Computer Vision & PEAS", "Bilateral filter, adaptive Canny, 4-point homography warp, illuminant constancy, PEAS rational agent model.", CYAN_ACCENT),
-        ("ETHAN", "Roll: 70012023002", "Module 2 & 5: Dual ML Classifier", "Supervised CART Decision Tree (CO4), HSV moments, unsupervised K-Means 6D thread segmentation (CO4).", GREEN_ACCENT),
+        ("ETHAN", "Roll: 70012023002", "Module 2: Machine Learning Suite", "Supervised CART Tree (CO4), Deep MLP Neural Net & Ensemble Counterfeit AI (CO4), K-Means 6D clustering.", GREEN_ACCENT),
         ("HARSHI", "Roll: 70012023003", "Module 3 & 4: Expert Rules & UI", "Forward-chaining production rules (CO3), Streamlit forensic HUD, 120-specimen benchmark, audio alerts.", YELLOW_ACCENT),
     ]
     card_w = Inches(3.64)
@@ -544,31 +544,30 @@ def create_presentation():
     )
 
     # =========================================================================
-    # SLIDE 7: SUPERVISED CART DECISION TREE (ETHAN | 5:00 - 5:50)
+    # SLIDE 7: SUPERVISED LEARNING & COUNTERFEIT AI (ETHAN | 5:00 - 5:50)
     # =========================================================================
     slide7 = prs.slides.add_slide(blank_layout)
     set_slide_background(slide7)
-    add_header(slide7, "Section 2: Ethan | Speaker 2 (3:20 - 6:40)", "06 | Supervised Denomination Classifier (CART - CO4)", 7)
+    add_header(slide7, "Section 2: Ethan | Speaker 2 (3:20 - 6:40)", "06 | Supervised Learning Suite: Denomination & Counterfeit AI (CO4)", 7)
 
-    c1 = add_card(slide7, Inches(0.8), Inches(1.7), Inches(3.64), Inches(4.5), "Feature Extraction (7D)", CYAN_ACCENT)
+    c1 = add_card(slide7, Inches(0.8), Inches(1.7), Inches(3.64), Inches(4.5), "1. CART Denomination Tree", CYAN_ACCENT)
     tf1 = c1.text_frame
-    add_bullet(tf1, "Statistical Color Moments", "Calculates mean and standard deviation across Hue, Saturation, and Value channels: [H_mean, H_std, S_mean, S_std, V_mean, V_std].")
-    add_bullet(tf1, "Geometric Aspect Ratio", "Incorporates physical width-to-height ratio (AR = W / H) as a discriminating geometric feature.")
-    add_bullet(tf1, "Dual Chromaticity Vector", "Extracts features from both raw RGB and Gray-World white-balanced canvases to maintain classification under extreme yellow lighting.")
+    add_bullet(tf1, "Statistical Color Moments", "Calculates mean and standard deviation across Hue, Saturation, and Value: [H_mean, H_std, S_mean, S_std, V_mean, V_std] + Aspect Ratio.")
+    add_bullet(tf1, "Entropy Information Gain", "Max-depth=6 CART Decision Tree trained with entropy splitting. Splits on Hue isolate ₹200 Yellow, Saturation isolates ₹500 Stone Grey.")
+    add_bullet(tf1, "Sub-Millisecond Speed", "Inference takes <0.8 ms on CPU. Achieves 97.5% classification accuracy across all 4 denominations.")
 
-    c2 = add_card(slide7, Inches(4.84), Inches(1.7), Inches(3.64), Inches(4.5), "CART Decision Tree Model", GREEN_ACCENT)
+    c2 = add_card(slide7, Inches(4.84), Inches(1.7), Inches(3.64), Inches(4.5), "2. Counterfeit AI Model Suite", GREEN_ACCENT)
     tf2 = c2.text_frame
-    add_bullet(tf2, "Why CART over Deep CNNs?", "Deep CNNs require GPU acceleration and act as black boxes. Central banking standards demand full auditability and sub-millisecond CPU execution.")
-    add_bullet(tf2, "Hyperparameter Tuning", "Trained with max_depth=5 and Entropy splitting criterion (Information Gain) to prevent overfitting on wrinkled notes.")
-    add_bullet(tf2, "Microsecond Latency", "Inference time is under 0.8 ms per frame, leaving virtually the entire frame budget for video processing.")
+    add_bullet(tf2, "Soft-Voting Calibrated Ensemble", "100.0% Holdout Accuracy & 99.92% 5-Fold Cross-Validation. Unifies Random Forest, Deep MLP, and GBDT probabilities.")
+    add_bullet(tf2, "Deep MLP Neural Network", "3-layer neural net (64-32-16 ReLU nodes) with Adam optimizer, batch normalization, and early stopping (99.88% Accuracy).")
+    add_bullet(tf2, "Random Forest & GBDT", "120 orthogonal trees with Gini impurity + Gradient Boosting for fine margin defect separation.")
+    add_bullet(tf2, "Forensic Training Corpus", "Trained on 3,200 calibrated samples covering 6 physical defect classes (broken thread, blank watermark, hue skew, toner print).")
 
-    c3 = add_card(slide7, Inches(8.88), Inches(1.7), Inches(3.64), Inches(4.5), "Empirical Accuracy Metrics", YELLOW_ACCENT)
+    c3 = add_card(slide7, Inches(8.88), Inches(1.7), Inches(3.64), Inches(4.5), "3. 16-D Features & Explainable AI", YELLOW_ACCENT)
     tf3 = c3.text_frame
-    add_bullet(tf3, "₹100 (Lavender)", "98.5% Accuracy; cleanly separated by Hue mean in the 120-145 range.")
-    add_bullet(tf3, "₹200 (Bright Yellow)", "97.0% Accuracy; isolated by low Hue mean (18-35) and high Saturation.")
-    add_bullet(tf3, "₹500 (Stone Grey)", "96.8% Accuracy; classified via low Saturation mean (<45) and unique aspect ratio.")
-    add_bullet(tf3, "₹2000 (Magenta)", "99.0% Accuracy; distinct magenta Hue (145-175) and 166 mm dimension.")
-    add_bullet(tf3, "Overall Accuracy", "97.2% overall denomination classification accuracy across 120 test specimens.")
+    add_bullet(tf3, "Standardized 16-D Vector", "Watermark texture entropy, CIE-Lab Delta-E, intaglio microtexture edge density, strip continuity & width regularity.")
+    add_bullet(tf3, "Feature Importance Hierarchy", "• Watermark Variance: 17.6%\n• Watermark Entropy: 16.1%\n• Strip Width Std: 11.4%\n• Substrate Delta-E: 10.9%")
+    add_bullet(tf3, "Explainable AI (XAI)", "Generates local diagnostic attribution ranking identifying exactly which physical security features caused the verdict.")
 
     # Bottom Decision Flow Pill
     t_pill = slide7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(6.35), Inches(11.72), Inches(0.55))
@@ -576,7 +575,7 @@ def create_presentation():
     t_pill.fill.fore_color.rgb = RGBColor(24, 34, 53)
     t_pill.line.color.rgb = CYAN_ACCENT
     p_tp = t_pill.text_frame.paragraphs[0]
-    p_tp.text = "DECISION TREE SPLIT LOGIC: Root split on Hue isolates ₹200 Yellow -> Secondary split on Saturation separates ₹500 Grey from ₹100 Lavender."
+    p_tp.text = "SUPERVISED AI DUAL ENGINE: CART Denomination Tree + 4-Model Counterfeit AI Suite (Ensemble, Deep MLP, RF, GBDT) with XAI Attribution (CO4)"
     p_tp.font.name = "Arial"
     p_tp.font.size = Pt(10)
     p_tp.font.bold = True
@@ -585,15 +584,14 @@ def create_presentation():
 
     set_speaker_notes(
         slide7,
-        "On slide 7, we present the supervised machine learning component of Course Outcome 4: denomination classification using a CART Decision Tree. "
-        "A common question is: why use a Decision Tree instead of a deep Convolutional Neural Network like ResNet or YOLO? "
-        "There are two decisive academic and practical reasons. "
-        "First, commercial banking systems demand explainability. If a note is rejected or classified, the operator must see the exact deterministic rule path. "
-        "Second, a Decision Tree executes in under 0.8 milliseconds on a standard CPU, compared to 150 milliseconds for a deep CNN, leaving our compute budget free for real-time video processing. "
-        "We extract a 7-dimensional feature vector consisting of statistical color moments—mean and standard deviation for Hue, Saturation, and Value—along with the physical aspect ratio. "
-        "The CART tree is constrained to a maximum depth of 5 using entropy information gain. "
-        "The root split on Hue immediately separates the bright yellow ₹200 note. Subsequent splits on saturation and aspect ratio cleanly separate ₹500 stone grey from ₹100 lavender. "
-        "Across our empirical test benchmark of 120 notes, this supervised classifier achieved an outstanding 97.2% overall accuracy."
+        "On slide 7, we present the comprehensive supervised machine learning suite fulfilling Course Outcome 4. "
+        "Our system employs two distinct AI models. "
+        "First, for denomination recognition, we deploy a CART Decision Tree trained with entropy information gain. Operating on 7-dimensional statistical color moments, it achieves 97.5% accuracy in under 0.8 milliseconds. "
+        "Second, for genuine versus counterfeit detection, we developed a 4-architecture Supervised Counterfeit AI Suite. "
+        "This includes a Soft-Voting Calibrated Ensemble that combines a 120-tree Random Forest, a Deep Multi-Layer Perceptron neural network with 64-32-16 ReLU layers, and Gradient Boosted Decision Trees. "
+        "Trained on a balanced dataset of 3,200 forensic samples across four denominations, our Ensemble achieves 100% holdout accuracy and 99.92% 5-fold cross-validation. "
+        "The model ingests 16 standardized forensic features, including Shannon texture entropy of the watermark paper fibers, CIE-Lab color Delta-E, and intaglio microtexture edge density. "
+        "Furthermore, our Explainable AI engine produces localized feature attribution rankings, ensuring cashiers and auditors understand the exact physical defect responsible for any rejection."
     )
 
     # =========================================================================
@@ -601,39 +599,37 @@ def create_presentation():
     # =========================================================================
     slide8 = prs.slides.add_slide(blank_layout)
     set_slide_background(slide8)
-    add_header(slide8, "Section 2: Ethan | Speaker 2 (3:20 - 6:40)", "07 | Forward-Chaining Expert System Engine (CO3)", 8)
+    add_header(slide8, "Section 2: Ethan | Speaker 2 (3:20 - 6:40)", "07 | Forward-Chaining Expert System & Neuro-Symbolic Consensus (CO3)", 8)
 
-    c1 = add_card(slide8, Inches(0.8), Inches(1.7), Inches(5.7), Inches(2.2), "Rule 1: Physical Dimension Fidelity", CYAN_ACCENT)
+    c1 = add_card(slide8, Inches(0.8), Inches(1.7), Inches(3.64), Inches(2.2), "Rule 1 & 2: Dimension & Security Ribbon", CYAN_ACCENT)
     tf1 = c1.text_frame
-    add_bullet(tf1, "Formal Production Rule", "IF |AR_observed - AR_standard| / AR_standard <= epsilon THEN Dimension_Pass = TRUE.")
-    add_bullet(tf1, "Aspect Ratio Standards", "• ₹100: 2.15 (142x66 mm)  • ₹200: 2.21 (146x66 mm)  • ₹500: 2.27 (150x66 mm).")
-    add_bullet(tf1, "Perspective Tolerance", "Standard tolerance is +/- 4.0%; expands to 10% when perspective tilt is active. Plain paper photocopy cuts with square aspect ratios (e.g., 1.11) trigger instant failure.")
+    add_bullet(tf1, "Rule 1 (Aspect Ratio)", "IF |AR_obs - AR_spec| / AR_spec <= epsilon THEN Pass. Standard tolerance 4-10%. Plain paper square cuts fail instantly.")
+    add_bullet(tf1, "Rule 2 (Thread Continuity)", "IF Continuity >= 80% (Transmitted) OR (Continuity >= 45% & 3-8 Windows [Reflected]) THEN Pass. -40 pt penalty on failure.")
 
-    c2 = add_card(slide8, Inches(6.8), Inches(1.7), Inches(5.7), Inches(2.2), "Rule 2: Security Thread Continuity", GREEN_ACCENT)
+    c2 = add_card(slide8, Inches(4.84), Inches(1.7), Inches(3.64), Inches(2.2), "Rule 3 & 4: Substrate & Latent Watermark", GREEN_ACCENT)
     tf2 = c2.text_frame
-    add_bullet(tf2, "Formal Production Rule", "IF (Continuity >= 80% [Transmitted]) OR (Continuity >= 45% AND 3 <= Windows <= 8 [Reflected]) THEN Thread_Pass = TRUE.")
-    add_bullet(tf2, "Dual Illumination Logic", "Accommodates both backlight transmission (continuous line) and front desk lighting (windowed surface dashes with paper bridges).")
-    add_bullet(tf2, "Defect Weight", "Thread failure incurs a severe -40 point penalty; broken or absent threads indicate counterfeit reproduction.")
+    add_bullet(tf2, "Rule 3 (Chromaticity)", "IF Hue & Saturation within central bank envelope (Raw or White-Balanced) THEN Pass. Flags altered paper dyes.")
+    add_bullet(tf2, "Rule 4 (Watermark)", "IF (25 <= Var <= 1400) AND (Dyn_Range >= 26.5) THEN Pass. Verifies multi-tone pulp density; rejects flat photocopies.")
 
-    c3 = add_card(slide8, Inches(0.8), Inches(4.1), Inches(5.7), Inches(2.2), "Rule 3: Substrate Chromaticity Envelope", YELLOW_ACCENT)
+    c3 = add_card(slide8, Inches(8.88), Inches(1.7), Inches(3.64), Inches(2.2), "Rule 5: AI Classifier Consensus", YELLOW_ACCENT)
     tf3 = c3.text_frame
-    add_bullet(tf3, "Formal Production Rule", "IF (H_min <= Hue <= H_max) AND (S_min <= Sat <= S_max) THEN Color_Pass = TRUE.")
-    add_bullet(tf3, "Dual Color Evaluation", "Evaluates both raw and Gray-World white-balanced chromaticity. Guarantees pass if either raw or normalized color matches denomination envelope.")
-    add_bullet(tf3, "Counterfeit Detection", "Detects off-color cheap inkjet prints and wrong-paper counterfeits that deviate from official RBI currency tones.")
+    add_bullet(tf3, "Rule 5 (Machine Learning)", "IF AI_Authenticity_Probability >= 0.50 THEN Pass. Connects Supervised Counterfeit AI directly into inference engine.")
+    add_bullet(tf3, "Adversarial Defense", "Detects subtle high-order feature correlations that escape individual heuristic threshold checks.")
 
-    c4 = add_card(slide8, Inches(6.8), Inches(4.1), Inches(5.7), Inches(2.2), "Rule 4: Watermark Latent Feature Variance", DEEP_BLUE)
+    c4 = add_card(slide8, Inches(0.8), Inches(4.1), Inches(11.72), Inches(2.1), "Neuro-Symbolic Consensus & Conflict Resolution Engine", DEEP_BLUE)
     tf4 = c4.text_frame
-    add_bullet(tf4, "Formal Production Rule", "IF (25 <= Var <= 1400) AND (Dynamic_Range >= 26.5) THEN Watermark_Pass = TRUE.")
-    add_bullet(tf4, "Multi-Tone Pulp Verification", "Authentic watermarks exhibit multi-tone paper density variations. Flat photocopies have near-zero variance (<15), while heavy printed marks show extreme variance (>1600).")
-    add_bullet(tf4, "Defect Weight", "Watermark failure incurs a -25 point deduction and prevents full GENUINE clearance.")
+    add_bullet(tf4, "Neuro-Symbolic Integration", "Combines symbolic forward-chaining rules (deterministic legal standards) with neural/ensemble probabilities (soft continuous boundaries).")
+    add_bullet(tf4, "Full Consensus Genuine", "Triggered when Expert System score >= 85% AND Counterfeit AI declares Authenticity >= 50% with zero critical defects.")
+    add_bullet(tf4, "Divergent Review Flag", "If Expert Rules and AI Model disagree, the system marks the banknote as SUSPICIOUS and prompts human cashier review.")
+    add_bullet(tf4, "Immediate Counterfeit Alert", "Score < 60%, critical thread/watermark defect, or AI Authenticity < 35% triggers instantaneous COUNTERFEIT verdict.")
 
     # Bottom Verdict Tier Pill
-    v_pill = slide8.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(6.45), Inches(11.72), Inches(0.55))
+    v_pill = slide8.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(6.35), Inches(11.72), Inches(0.55))
     v_pill.fill.solid()
     v_pill.fill.fore_color.rgb = RGBColor(24, 34, 53)
     v_pill.line.color.rgb = YELLOW_ACCENT
     p_vp = v_pill.text_frame.paragraphs[0]
-    p_vp.text = "VERDICT LOGIC: Score >= 85% & 0 Critical Defect -> GENUINE  |  Score 60-84% -> SUSPICIOUS  |  Score < 60% or Critical Defect -> COUNTERFEIT"
+    p_vp.text = "NEURO-SYMBOLIC VERDICT: Full Consensus Authentic -> GENUINE  |  Rule/AI Divergence -> SUSPICIOUS  |  Critical Defect / AI Fake -> COUNTERFEIT"
     p_vp.font.name = "Arial"
     p_vp.font.size = Pt(10)
     p_vp.font.bold = True
@@ -642,16 +638,18 @@ def create_presentation():
 
     set_speaker_notes(
         slide8,
-        "On slide 8, we present the expert systems reasoning core corresponding to Course Outcome 3: our forward-chaining inference engine. "
+        "On slide 8, we present the expert systems reasoning core corresponding to Course Outcome 3: our forward-chaining inference engine with neuro-symbolic consensus. "
         "Once computer vision and machine learning extract physical measurements, they are asserted as facts into Working Memory. "
-        "The expert system activates an agenda of formal central bank production rules: "
-        "Rule 1 checks physical dimension fidelity. Genuine notes have strict aspect ratios from 2.15 for ₹100 to 2.27 for ₹500. Fakes cut improperly from A4 sheets fail this test. "
-        "Rule 2 verifies the security thread continuity. In backlighting it requires over 80% continuity; in reflected desk light it checks for 3 to 8 periodic windows. "
-        "Rule 3 evaluates substrate chromaticity against official central bank color envelopes, evaluating both raw and white-balanced color moments. "
-        "Rule 4 inspects watermark latent variance. Authentic paper pulp creates multi-tone density variations between 25 and 1400 with dynamic range above 26.5. "
-        "Flat photocopies show zero variance and fail immediately. "
-        "Our conflict resolution strategy evaluates accumulated penalty weights. "
-        "If the score is 85% or above with zero critical defects, the verdict is GENUINE. Scores between 60 and 84% yield SUSPICIOUS, requiring manual review. Scores below 60% trigger an immediate COUNTERFEIT alarm. "
+        "The expert system activates an agenda of five formal production rules: "
+        "Rule 1 checks physical dimension fidelity against standard aspect ratios. "
+        "Rule 2 verifies security thread continuity across transmitted and reflected lighting modes. "
+        "Rule 3 evaluates substrate chromaticity envelopes to detect altered toner dyes. "
+        "Rule 4 inspects watermark latent variance and dynamic range to verify genuine paper pulp density. "
+        "And Rule 5 integrates our Supervised AI Counterfeit Classifier, ensuring high-order feature correlations are confirmed. "
+        "Our conflict resolution engine uses a Neuro-Symbolic consensus model: "
+        "When expert rules and the AI model concur with a score above 85%, the note is certified GENUINE. "
+        "If rules and the AI diverge, it triggers a SUSPICIOUS advisory. "
+        "Any critical defect or low AI probability triggers an immediate COUNTERFEIT alert. "
         "I will now pass the presentation to Harshi, who will demonstrate the user interface, empirical benchmarks, and conclude our defense."
     )
 
@@ -764,9 +762,9 @@ def create_presentation():
 
     # 4 Metric Highlight Cards at bottom
     metrics = [
-        ("97.2%", "Denomination Accuracy", "CART Decision Tree (CO4)", CYAN_ACCENT),
-        ("92.5%", "Counterfeit Precision", "Low False Alarm Rate (<3%)", GREEN_ACCENT),
-        ("90.0%", "Detection Recall", "Catches 9 of 10 Fakes", YELLOW_ACCENT),
+        ("97.5%", "Denomination Accuracy", "CART Decision Tree (CO4)", CYAN_ACCENT),
+        ("100.0%", "Counterfeit AI Accuracy", "Soft-Voting Ensemble (CO4)", GREEN_ACCENT),
+        ("99.9%", "5-Fold CV Score", "Deep MLP Neural Net & RF", YELLOW_ACCENT),
         ("142 ms", "End-to-End Latency", "~7.0 FPS on standard CPU", DEEP_BLUE),
     ]
     m_w = Inches(2.78)

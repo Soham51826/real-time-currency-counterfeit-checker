@@ -8,12 +8,14 @@
 A production-grade, modular, and fully runnable Python application engineered to detect currency denominations and rigorously inspect security features for counterfeit detection in real time.
 
 Designed and structured in strict compliance with Academic AI Curriculum Standards:
-- **CO1 (Agent Modeling)**: Formal PEAS (Performance, Environment, Actuators, Sensors) framework.
-- **CO3 (Knowledge Representation & Expert Systems)**: Forward-chaining rule engine evaluating formal central bank specifications.
+- **CO1 (Agent Modeling)**: Formal PEAS (Performance, Environment, Actuators, Sensors) framework for the Automated Banknote Inspection Agent (ABIA).
+- **CO3 (Knowledge Representation & Expert Systems)**: Forward-chaining inference engine evaluating formal central bank specifications with neuro-symbolic consensus.
 - **CO4 (Supervised & Unsupervised Machine Learning)**:
-  - **Supervised**: Decision Tree Classifier for denomination recognition with confidence metrics and explainability rules.
-  - **Unsupervised**: K-Means Clustering on the security thread Region of Interest (ROI) to segment the metallic/fluorescent ribbon and calculate vertical continuity.
-- **Computer Vision Pipeline**: Adaptive Canny edge detection, Douglas-Peucker convex polygon contour approximation, four-point perspective homography warp to a standard $600 \times 300\text{ px}$ canvas, and color moment analysis.
+  - **Supervised Denomination AI**: Decision Tree Classifier with entropy information gain on statistical color moments and aspect ratio (97.5% accuracy).
+  - **Supervised Counterfeit AI Suite**: 4-model architecture suite (Soft-Voting Calibrated Ensemble, Deep Multi-Layer Perceptron Neural Net, Random Forest, and Gradient Boosting) trained on 3,200 forensic samples across 16 standardized physical features (100% holdout accuracy, 99.92% 5-fold CV).
+  - **Explainable AI (XAI)**: Feature attribution ranking identifying the exact physical cues causing verdict outcomes.
+  - **Unsupervised Learning**: K-Means Clustering on the security thread Region of Interest (ROI) to segment the metallic ribbon and compute vertical continuity.
+- **Computer Vision Pipeline**: Adaptive Otsu-Canny edge detection, convex polygon contour approximation, four-point perspective homography warp to a standard $600 \times 300\text{ px}$ canvas, Gray-World illuminant constancy, and auto-orientation.
 
 ---
 
@@ -28,23 +30,32 @@ Designed and structured in strict compliance with Academic AI Curriculum Standar
                            │  - 4-Point Perspective Warp    │
                            │  - ROI Extraction (Strip, WM)  │
                            │  - K-Means Color Segmentation  │
+                           │  - 16-D Forensic Feature Vec   │
                            └───────┬──────────────┬─────────┘
                                    │              │
-             Extracted HSV Moments │              │ ROI Masks & Continuity
+             Extracted HSV Moments │              │ Standardized 16-D Vector
                                    ▼              ▼
                  ┌──────────────────────┐  ┌───────────────────────┐
-                 │ Module 2: Classifier │  │ Module 3: Expert Sys  │
-                 │ Decision Tree (CO4)  │  │ Forward-Chaining (CO3)│
-                 │ Denomination Predict │  │ Rules 1-4 Verification│
+                 │ Module 2: Classifier │  │ Module 2B: Counterfeit│
+                 │ Decision Tree (CO4)  │  │ AI Suite (CO4)        │
+                 │ Denomination Predict │  │ Ensemble / MLP / RF   │
                  └──────────┬───────────┘  └──────────┬────────────┘
-                            │                         │
+                            │ Denomination            │ Authenticity Prob & XAI
                             └──────────────┬──────────┘
+                                           ▼
+                           ┌────────────────────────────────┐
+                           │ Module 3: Expert System Engine │
+                           │ - Forward-Chaining (CO3)       │
+                           │ - Rules 1-5 Verification       │
+                           │ - Neuro-Symbolic Consensus     │
+                           └───────────────┬────────────────┘
                                            │
                            ┌───────────────▼────────────────┐
-                           │   Module 4: Streamlit UI       │
-                           │  - Real-time Visual Overlays   │
-                           │  - Diagnostic Rule Checklist   │
-                           │  - Authenticity Verdict Banner │
+                           │ Module 4: Streamlit UI         │
+                           │ - Real-time Visual Overlays    │
+                           │ - Diagnostic Rule Checklist    │
+                           │ - AI Model Architecture Bench  │
+                           │ - Authenticity Verdict Banner  │
                            └────────────────────────────────┘
 ```
 
@@ -57,41 +68,63 @@ The system models an autonomous rational agent encapsulated as `AgentPEAS` in `e
 
 | PEAS Element | Specification |
 | :--- | :--- |
-| **Performance Measures (P)** | - Denomination recognition accuracy $\ge 95\%$<br>- Counterfeit detection sensitivity $\ge 98\%$<br>- False positive rate for genuine currency $< 2\%$<br>- Frame processing latency $< 150\text{ ms}$ |
-| **Environment (E)** | - Variable ambient lighting (incandescent, daylight, shadows)<br>- Hand jitter, rotation, tilt, and perspective distortion<br>- Banknote physical condition (crisp uncirculated, creased, soiled)<br>- Adversarial counterfeits (color photocopies, broken thread imitations, blank watermark paper) |
-| **Actuators (A)** | - Dynamic bounding box overlays highlighting inspected ROIs<br>- High-contrast Tri-Color Verdict Banner (`GENUINE`, `SUSPICIOUS`, `COUNTERFEIT`)<br>- Forward-chaining diagnostic checklist with measured values vs thresholds<br>- Real-time metric scorecards |
-| **Sensors (S)** | - Live RGB optical webcam video stream (`st.camera_input`)<br>- High-resolution image upload sensor (`st.file_uploader`)<br>- OpenCV edge digitizer & color moment sensor |
+| **Performance Measures (P)** | - Denomination recognition accuracy $\ge 95\%$ (Achieved: $97.5\%$)<br>- Counterfeit detection accuracy: $100.0\%$ (Holdout), $99.92\%$ ($5$-Fold CV)<br>- False negative rate for counterfeits: $0.0\%$<br>- Real-time frame processing latency $< 150\text{ ms}$ |
+| **Environment (E)** | - Variable ambient lighting (incandescent 2700K, cool LED, ambient daylight)<br>- Hand jitter, rotation, tilt, and perspective distortion<br>- Banknote physical condition (crisp uncirculated, creased, soiled)<br>- Adversarial counterfeits (color photocopies, broken thread imitations, blank watermark paper, altered dyes) |
+| **Actuators (A)** | - Dynamic bounding box overlays highlighting inspected ROIs<br>- High-contrast Tri-Color Verdict Banner (`GENUINE`, `SUSPICIOUS`, `COUNTERFEIT`)<br>- Forward-chaining diagnostic checklist with measured values vs thresholds<br>- Real-time AI authenticity confidence gauges and XAI attribution rankings |
+| **Sensors (S)** | - Live RGB optical webcam video stream (`st.camera_input`)<br>- High-resolution image upload sensor (`st.file_uploader`)<br>- OpenCV edge digitizer, color moment sensor & CIE-Lab Delta-E calculator |
 
 ---
 
-### 2. Forward-Chaining Expert System (CO3)
-Located in `expert_system.py`, the `VerificationExpertSystem` implements an AI forward-chaining cycle:
-1. **Working Memory Ingestion**: Populates facts (aspect ratio, K-Means continuity percentage, watermark intensity variance, mean HSV color values).
+### 2. Forward-Chaining Expert System & Neuro-Symbolic Consensus (CO3)
+Located in `expert_system.py`, the `VerificationExpertSystem` implements an AI forward-chaining cycle over 5 production rules:
+1. **Working Memory Ingestion**: Populates facts (aspect ratio, K-Means continuity percentage, watermark intensity variance, entropy, CIE-Lab Delta-E, AI authenticity probability).
 2. **Rule Base Evaluation**:
-   - **Rule 1 (Physical Dimensions)**: Verifies note width-to-height aspect ratio against official bank specifications within $\pm 5\%$ tolerance.
-   - **Rule 2 (Security Thread Continuity)**: Verifies segmented metallic ribbon maintains $\ge 80\%$ vertical continuity from top to bottom.
+   - **Rule 1 (Physical Dimensions)**: Verifies note width-to-height aspect ratio against official specifications within $\pm 10\%$ perspective tolerance.
+   - **Rule 2 (Security Thread Continuity)**: Verifies segmented metallic ribbon maintains $\ge 65\%$ continuity (transmitted) or 3-8 periodic windows with $\ge 45\%$ continuity (reflected).
    - **Rule 3 (Substrate Color Consistency)**: Validates that mean Hue and Saturation fall within the chromaticity envelope of the predicted denomination.
-   - **Rule 4 (Watermark Latent Contrast)**: Checks pixel intensity variance ($80 \le \sigma^2 \le 1400$) and dynamic range ($\ge 28$) in the watermark window to confirm multi-tone latent portrait presence (flags flat paper or harsh toner stamps).
-3. **Conflict Resolution & Penalty Scoring**: Calculates weighted penalty points based on rule severity (`CRITICAL`, `MAJOR`, `MINOR`).
-4. **Goal State Derivation**: Emits structured diagnosis:
-   - `GENUINE` (Emerald Green): All rules pass; full security compliance.
-   - `SUSPICIOUS` (Amber Yellow): Minor soft deviation (e.g. slight folding or camera tilt); manual inspection recommended.
-   - `COUNTERFEIT` (Crimson Red): Critical failure in security thread, watermark, or substrate color.
+   - **Rule 4 (Watermark Latent Contrast)**: Checks pixel intensity variance ($25 \le \sigma^2 \le 1400$) and dynamic range ($\ge 26.5$) in the watermark window to confirm multi-tone latent portrait presence.
+   - **Rule 5 (AI Supervised Classifier Consensus)**: Validates that the active Supervised Counterfeit AI model predicts Authenticity Probability $\ge 0.50$.
+3. **Neuro-Symbolic Consensus**:
+   - `GENUINE` (Emerald Green): Both symbolic rules and Machine Learning model concur (Score $\ge 85\%$ & AI Authenticity $\ge 50\%$).
+   - `SUSPICIOUS` (Amber Yellow): Divergent conclusion between rules and AI model, or soft wear degradation; prompts manual cashier review.
+   - `COUNTERFEIT` (Crimson Red): Critical failure in thread/watermark or low AI authenticity score ($< 35\%$).
 
 ---
 
 ### 3. Machine Learning Classifiers (CO4)
 
-#### Supervised Learning: Decision Tree (`classifier.py`)
+#### Supervised Denomination Classifier (`classifier.py`)
 - Fits an `sklearn.tree.DecisionTreeClassifier(max_depth=6, criterion='entropy')` using Information Gain on statistical HSV moments and aspect ratio.
-- Achieves **100% holdout test accuracy** on distinct denomination classes (₹100, ₹200, ₹500, ₹2000).
-- Provides model persistence (`models/denomination_tree.joblib`) via `joblib`.
-- Features human-interpretable rule exports via `export_text()`.
+- Achieves **97.5% holdout test accuracy** on distinct denomination classes (₹100, ₹200, ₹500, ₹2000) with sub-millisecond execution ($<0.8\text{ ms}$).
+
+#### Supervised Counterfeit AI Suite (`counterfeit_classifier.py`)
+- Operates on a **16-dimensional standardized forensic feature vector**:
+  1. Aspect ratio deviation
+  2. Security strip vertical continuity (%)
+  3. Security thread window segment count
+  4. Security thread mean ribbon thickness
+  5. Security thread width standard deviation
+  6. Watermark grayscale intensity variance
+  7. Watermark dynamic luminance contrast range
+  8. Watermark high-frequency Laplacian sharpness
+  9. Watermark Shannon texture entropy (paper fiber randomness)
+  10. Substrate hue deviation from canonical currency standard
+  11. Substrate saturation mean
+  12. Substrate saturation standard deviation
+  13. Substrate value (brightness) mean
+  14. CIE-Lab perceptual color Delta-E
+  15. Intaglio microprint edge density
+  16. Denomination numerical identifier
+- Evaluates 4 distinct AI architectures:
+  1. **Soft-Voting Ensemble AI**: 100% Test Accuracy, 99.92% 5-Fold Cross-Validation.
+  2. **Deep Multi-Layer Perceptron (MLP)**: 3-layer neural network (64-32-16 ReLU nodes) with Adam optimizer and early stopping (99.88% Accuracy).
+  3. **Random Forest Classifier**: 120 orthogonal decision trees with Gini impurity splitting (100% Accuracy).
+  4. **Gradient Boosted Decision Trees (GBDT)**: Sequential boosting for high-margin separation (100% Accuracy).
+- **Explainable AI (XAI)**: Computes local feature attribution rankings to explain why a note is flagged.
 
 #### Unsupervised Learning: K-Means Clustering (`vision_pipeline.py`)
 - Applies `sklearn.cluster.KMeans(n_clusters=3)` on combined HSV and CIE-Lab color spaces within the security thread ROI.
-- Segments the embedded metallic thread from the paper substrate and background printing without requiring prior manual labeling.
-- Measures vertical continuity percentage across horizontal scanlines.
+- Segments the embedded metallic thread from paper substrate and background print without requiring manual ground truth annotations.
 
 ---
 
@@ -99,18 +132,25 @@ Located in `expert_system.py`, the `VerificationExpertSystem` implements an AI f
 
 ```
 Real-Time Currency and Counterfeit checker/
-├── app.py                     # Module 4: Modern Streamlit Forensic Dashboard & UI
-├── vision_pipeline.py         # Module 1: OpenCV Preprocessing, Homography & K-Means
-├── classifier.py              # Module 2: Supervised Decision Tree Denomination Classifier
-├── expert_system.py           # Module 3: Forward-Chaining Authenticity Inference Engine
-├── generate_sample_data.py    # Module 5: Dataset generation, Model training & Synthetic notes
-├── test_pipeline.py           # Automated end-to-end verification test suite
-├── requirements.txt           # Pinned production dependencies
+├── app.py                         # Module 4: Modern Streamlit Forensic Dashboard & UI
+├── vision_pipeline.py             # Module 1: OpenCV Preprocessing, Homography, K-Means & 16-D Features
+├── classifier.py                  # Module 2: Supervised Decision Tree Denomination Classifier
+├── counterfeit_classifier.py      # Module 2B: Supervised Counterfeit AI Suite (Ensemble, MLP, RF, GBDT)
+├── expert_system.py               # Module 3: Forward-Chaining Inference Engine & Neuro-Symbolic Consensus
+├── generate_sample_data.py        # Module 5: Dataset synthesis & Model training pipeline
+├── test_pipeline.py               # Automated end-to-end verification test suite
+├── test_inspect_samples.py        # Advanced interactive sample inspection utility
+├── generate_presentation_pptx.py  # Presentation generator (12-slide dark-mode technical defense)
+├── generate_report_docx.py        # Academic project report generator (.docx)
+├── requirements.txt               # Pinned production dependencies
 ├── data/
-│   └── currency_features.csv  # 1,600 training samples across 4 denominations
+│   ├── currency_features.csv      # Denomination training data (1,600 samples)
+│   └── counterfeit_detection_dataset.csv # 16-D Counterfeit forensic dataset (3,200 samples)
 ├── models/
-│   └── denomination_tree.joblib # Serialized Decision Tree weights
-└── samples/                   # Pre-rendered test banknotes (Genuine + Counterfeit test cases)
+│   ├── denomination_tree.joblib   # Serialized Denomination Tree model
+│   ├── counterfeit_ai_model.joblib# Serialized Counterfeit AI models (Ensemble, MLP, RF, GBDT)
+│   └── counterfeit_model_metrics.json # Performance metrics, CV scores, confusion matrices
+└── samples/                       # Pre-rendered test banknotes (Genuine + Defective test cases)
     ├── genuine_100.png
     ├── genuine_200.png
     ├── genuine_500.png

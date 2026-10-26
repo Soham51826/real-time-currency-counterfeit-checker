@@ -1,0 +1,96 @@
+{
+  "rf": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "roc_auc": 1.0,
+    "cv_accuracy_mean": 0.9992,
+    "cv_accuracy_std": 0.0006,
+    "confusion_matrix": [
+      [
+        400,
+        0
+      ],
+      [
+        0,
+        400
+      ]
+    ]
+  },
+  "mlp": {
+    "accuracy": 0.9988,
+    "precision": 1.0,
+    "recall": 0.9975,
+    "f1_score": 0.9987,
+    "roc_auc": 1.0,
+    "cv_accuracy_mean": 0.9958,
+    "cv_accuracy_std": 0.0006,
+    "confusion_matrix": [
+      [
+        400,
+        0
+      ],
+      [
+        1,
+        399
+      ]
+    ]
+  },
+  "gbdt": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "roc_auc": 1.0,
+    "cv_accuracy_mean": 0.9987,
+    "cv_accuracy_std": 0.001,
+    "confusion_matrix": [
+      [
+        400,
+        0
+      ],
+      [
+        0,
+        400
+      ]
+    ]
+  },
+  "ensemble": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "roc_auc": 1.0,
+    "cv_accuracy_mean": 0.9992,
+    "cv_accuracy_std": 0.0006,
+    "confusion_matrix": [
+      [
+        400,
+        0
+      ],
+      [
+        0,
+        400
+      ]
+    ]
+  },
+  "feature_importances": {
+    "watermark_variance": 0.1755,
+    "watermark_entropy": 0.161,
+    "strip_width_std": 0.1136,
+    "color_hue_dev": 0.1101,
+    "color_delta_e": 0.1091,
+    "watermark_laplacian_var": 0.0774,
+    "watermark_dynamic_range": 0.0605,
+    "microtexture_edge_density": 0.0567,
+    "strip_continuity": 0.0543,
+    "strip_width_mean": 0.0393,
+    "strip_window_count": 0.0205,
+    "aspect_ratio_error": 0.0165,
+    "color_sat_mean": 0.0036,
+    "color_sat_std": 0.0008,
+    "color_val_mean": 0.0006,
+    "denomination_code": 0.0005
+  }
+}

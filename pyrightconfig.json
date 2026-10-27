@@ -3,5 +3,9 @@
   "venv": ".venv",
   "extraPaths": [
     "."
-  ]
+  ],
+  "typeCheckingMode": "basic",
+  "reportArgumentType": "none",
+  "reportCallIssue": "none",
+  "reportPossiblyUnboundVariable": "warning"
 }

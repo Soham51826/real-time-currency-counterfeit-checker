@@ -130,38 +130,53 @@ def generate_counterfeit_dataset(
     n_fake = n_samples - n_genuine
     rows = []
 
-    denoms = ["100", "200", "500", "2000"]
-    denom_code_map = {"100": 1.0, "200": 2.0, "500": 5.0, "2000": 20.0}
+    denoms = ["100", "200", "500"]
+    denom_code_map = {"100": 1.0, "200": 2.0, "500": 5.0}
 
-    # 1. Synthesize Genuine Banknotes
+    # 1. Synthesize Genuine Banknotes (50% flat scans / 50% real-world camera captures)
     for _ in range(n_genuine):
         denom = str(np.random.choice(denoms))
         spec = DENOMINATION_SPECS[denom]
         d_code = denom_code_map[denom]
 
-        # Conforming aspect ratio error: mostly crisp orthogonal (< 0.05), with 8% camera perspective tilt
-        if np.random.rand() < 0.08:
-            ar_err = float(np.random.uniform(0.06, 0.32))  # Camera perspective foreshortening
+        is_camera = np.random.rand() < 0.50
+
+        if is_camera:
+            # Real camera: slight perspective foreshortening, room lighting, sensor texture
+            ar_err = float(np.random.uniform(0.005, 0.09))
+            is_win = np.random.rand() < 0.85
+            if is_win:
+                strip_cont = float(np.random.uniform(28.0, 68.0))
+                strip_win = np.random.randint(2, 9)
+            else:
+                strip_cont = float(np.random.uniform(70.0, 100.0))
+                strip_win = 1
+
+            strip_width_mean = float(np.random.normal(11.5, 1.8))
+            strip_width_std = float(np.random.normal(2.5, 0.6))
+
+            wm_var = float(np.random.uniform(700.0, 4800.0))
+            wm_dyn = float(np.random.uniform(50.0, 160.0))
+            wm_lap = float(np.random.uniform(1500.0, 7500.0))
+            wm_ent = float(np.random.uniform(4.50, 6.20))
+
+            delta_e = float(np.random.uniform(22.0, 140.0))
+            edge_dens = float(np.random.uniform(0.045, 0.135))
         else:
+            # Clean flat scan or backlit sample
             ar_err = float(np.clip(np.random.exponential(0.008), 0.0, 0.05))
-
-        # Thread: 92% continuous, 8% authentic windowed
-        is_win = np.random.rand() < 0.08
-        if is_win:
-            strip_cont = float(np.random.uniform(40.0, 62.0))
-            strip_win = np.random.randint(3, 8)
-        else:
-            strip_cont = float(np.random.uniform(96.0, 100.0))
+            strip_cont = float(np.random.uniform(94.0, 100.0))
             strip_win = 1
+            strip_width_mean = float(np.random.normal(10.5, 1.2))
+            strip_width_std = float(np.random.normal(2.4, 0.4))
 
-        strip_width_mean = float(np.random.normal(10.5, 1.2))
-        strip_width_std = float(np.random.normal(2.4, 0.4))
+            wm_var = float(np.random.uniform(230.0, 480.0))
+            wm_dyn = float(np.random.uniform(28.0, 40.0))
+            wm_lap = float(np.random.uniform(450.0, 1800.0))
+            wm_ent = float(np.random.uniform(4.20, 4.70))
 
-        # Watermark: multi-tone latent portrait (matching actual rendered samples)
-        wm_var = float(np.random.uniform(230.0, 480.0) + np.random.normal(0, 15.0))
-        wm_dyn = float(np.random.uniform(30.0, 38.0))
-        wm_lap = float(np.random.uniform(450.0, 1600.0))
-        wm_ent = float(np.random.uniform(4.24, 4.65))
+            delta_e = float(np.clip(np.random.normal(7.5, 2.0), 2.5, 15.0))
+            edge_dens = float(np.random.uniform(0.024, 0.040))
 
         # Color: Conforming to central bank envelope
         h_min, h_max = spec["hsv_bounds"]["h_mean"]
@@ -169,16 +184,10 @@ def generate_counterfeit_dataset(
         v_min, v_max = spec["hsv_bounds"]["v_mean"]
         h_target = (h_min + h_max) / 2.0
         h_obs = float(np.random.uniform(h_min, h_max))
-        hue_dev = float(abs(h_obs - h_target)) + float(np.random.uniform(5.0, 25.0))
+        hue_dev = float(abs(h_obs - h_target)) + float(np.random.uniform(2.0, 15.0))
         s_mean = float(np.random.uniform(s_min, s_max))
         s_std = float(np.random.normal(12.0, 2.5))
         v_mean = float(np.random.uniform(v_min, v_max))
-        
-        # Perceptual CIE-Lab Delta-E (empirically 3.0 to 12.5 for genuine banknotes)
-        delta_e = float(np.clip(np.random.normal(7.5, 2.0), 2.5, 14.0))
-
-        # Microtexture intaglio edge density
-        edge_dens = float(np.random.uniform(0.026, 0.036))
 
         rows.append({
             "aspect_ratio_error": round(ar_err, 4),
@@ -234,51 +243,51 @@ def generate_counterfeit_dataset(
         v_min, v_max = spec["hsv_bounds"]["v_mean"]
         h_target = (h_min + h_max) / 2.0
         h_obs = float(np.random.uniform(h_min, h_max))
-        hue_dev = float(abs(h_obs - h_target)) + float(np.random.uniform(15.0, 35.0))
+        hue_dev = float(abs(h_obs - h_target)) + float(np.random.uniform(2.0, 15.0))
         s_mean = float(np.random.uniform(s_min, s_max))
         s_std = float(np.random.normal(12.0, 2.5))
         v_mean = float(np.random.uniform(v_min, v_max))
-        delta_e = float(np.clip(np.random.normal(7.5, 2.0), 2.5, 14.0))
+        delta_e = float(np.clip(np.random.normal(7.5, 2.0), 2.5, 15.0))
         edge_dens = float(np.random.uniform(0.026, 0.036))
 
         # Apply specific defect manifestation
         if defect == "BROKEN_THREAD":
-            # Disrupted, painted, or severed metallic thread
-            strip_cont = float(np.random.uniform(12.0, 52.0))
-            strip_win = int(np.random.choice([0, 2, 4, 6]))
-            strip_width_mean = float(np.random.uniform(8.0, 12.0))
+            # Broken thread on flat sample (discontinuous segments with large gaps)
+            strip_cont = float(np.random.uniform(10.0, 50.0))
+            strip_win = int(np.random.choice([0, 1, 4, 6]))
+            strip_width_mean = float(np.random.uniform(4.0, 12.0))
             strip_width_std = float(np.random.uniform(3.8, 6.5))
 
         elif defect == "BLANK_WATERMARK":
             # Flat paper photocopy with unprinted watermark window
-            wm_var = float(np.random.uniform(4.0, 220.0))
-            wm_dyn = float(np.random.uniform(4.0, 25.2))
-            wm_lap = float(np.random.uniform(15.0, 260.0))
-            wm_ent = float(np.random.uniform(2.30, 3.75))
+            wm_var = float(np.random.uniform(2.0, 225.0))
+            wm_dyn = float(np.random.uniform(2.0, 25.0))
+            wm_lap = float(np.random.uniform(10.0, 280.0))
+            wm_ent = float(np.random.uniform(2.0, 3.65))
 
         elif defect == "STAMPED_WATERMARK":
             # Opaque rubber stamp or harsh inkjet watermark with dark unnatural edges
-            wm_var = float(np.random.uniform(1800.0, 7200.0))
-            wm_dyn = float(np.random.uniform(55.0, 95.0))
-            wm_lap = float(np.random.uniform(2200.0, 6500.0))
-            wm_ent = float(np.random.uniform(4.90, 5.80))
+            wm_var = float(np.random.uniform(14000.0, 40000.0))
+            wm_dyn = float(np.random.uniform(96.0, 180.0))
+            wm_lap = float(np.random.uniform(9000.0, 25000.0))
+            wm_ent = float(np.random.uniform(6.70, 7.80))
 
         elif defect == "ALTERED_COLOR":
             # Incompatible inkjet toner dye, wrong hue, high Delta-E
-            hue_dev = float(np.random.uniform(35.0, 110.0))
-            delta_e = float(np.random.uniform(32.0, 120.0))
+            hue_dev = float(np.random.uniform(22.0, 110.0))
+            delta_e = float(np.random.uniform(45.0, 200.0))
             s_mean = float(np.random.uniform(10.0, 240.0))
 
         elif defect == "BAD_DIMENSION":
             # Counterfeit cut to incorrect physical size / distorted ratio
-            ar_err = float(np.random.uniform(0.18, 0.45))
+            ar_err = float(np.random.uniform(0.18, 0.48))
             strip_width_mean = float(np.random.uniform(14.0, 20.0))
-            wm_var = float(np.random.uniform(520.0, 950.0))
 
         elif defect == "LOW_QUALITY_PRINT":
             # Blurred desktop scan / lack of fine intaglio security microprinting
-            edge_dens = float(np.random.uniform(0.005, 0.019))
-            wm_ent = float(np.random.uniform(3.20, 3.85))
+            edge_dens = float(np.random.uniform(0.003, 0.018))
+            wm_lap = float(np.random.uniform(50.0, 300.0))
+            wm_ent = float(np.random.uniform(2.80, 3.60))
 
         rows.append({
             "aspect_ratio_error": round(ar_err, 4),
@@ -348,7 +357,7 @@ def render_synthetic_banknote(
       - Denomination numerals and Reserve Bank promise clause text.
 
     Parameters:
-        denomination (str): '100', '200', '500', or '2000'.
+        denomination (str): '100', '200', or '500'.
         has_continuous_thread (bool): False to simulate broken/painted counterfeit thread.
         has_watermark (bool): False to simulate flat unwatermarked counterfeit paper.
         corrupt_color (bool): True to simulate wrong toner/ink hue counterfeit.
@@ -371,7 +380,6 @@ def render_synthetic_banknote(
         "100": (215, 175, 185),   # BGR: Lavender (Blueish Violet)
         "200": (70, 205, 245),    # BGR: Bright Warm Yellow
         "500": (175, 192, 180),   # BGR: Stone Olive Grey
-        "2000": (170, 105, 225),  # BGR: Vivid Magenta
     }
     base_bgr = color_schemes.get(denomination, (175, 192, 180))
 
@@ -586,7 +594,7 @@ def generate_all_artifacts() -> None:
     df = generate_feature_dataset(n_samples_per_class=400)
     csv_path = os.path.join("data", "currency_features.csv")
     df.to_csv(csv_path, index=False)
-    print(f"[OK] Generated {len(df)} samples across 4 denominations: {csv_path}")
+    print(f"[OK] Generated {len(df)} samples across {len(DENOMINATION_SPECS)} denominations ({', '.join(['₹'+d for d in DENOMINATION_SPECS.keys()])}): {csv_path}")
 
     print("\n" + "=" * 65)
     print("STEP 2: Training & Serializing Decision Tree Denomination Classifier")
@@ -613,7 +621,6 @@ def generate_all_artifacts() -> None:
         ("genuine_100.png", "100", True, True, False, False),
         ("genuine_200.png", "200", True, True, False, False),
         ("genuine_500.png", "500", True, True, False, False),
-        ("genuine_2000.png", "2000", True, True, False, False),
         ("counterfeit_broken_thread.png", "500", False, True, False, False),
         ("counterfeit_blank_watermark.png", "500", True, False, False, False),
         ("counterfeit_wrong_color.png", "500", True, True, True, False),

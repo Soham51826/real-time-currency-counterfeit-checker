@@ -2,7 +2,7 @@
 Module 2: Machine Learning Denomination Classifier
 ===================================================
 Implements a supervised Decision Tree Classifier (sklearn.tree.DecisionTreeClassifier)
-for recognizing currency note denominations (e.g. ₹100, ₹200, ₹500, ₹2000) based on
+for recognizing currency note denominations (e.g. ₹100, ₹200, ₹500) based on
 statistical color moments (HSV) and physical aspect ratios.
 
 Academic Mapping:
@@ -62,20 +62,6 @@ DENOMINATION_SPECS: Dict[str, Dict[str, Any]] = {
             # Widened from (15,75) → (5,105): very low-saturation note, easily affected by WB
             "s_mean": (5, 105),
             "v_mean": (80, 210),
-        },
-    },
-    "2000": {
-        "label": "2000",
-        "display_name": "₹2000 (Magenta)",
-        "color_name": "Magenta",
-        "dimensions_mm": (166, 66),
-        "aspect_ratio": round(166 / 66, 2),  # ~2.51
-        "hsv_bounds": {
-            # Widened from (145,172) → (132,178): deep pink/magenta can wrap in HSV space
-            "h_mean": (132, 178),
-            # Widened from (110,225) → (65,240): saturation spread due to multi-tone print
-            "s_mean": (65, 240),
-            "v_mean": (115, 240),
         },
     },
 }
@@ -298,7 +284,7 @@ class DenominationClassifier:
 
         # If raw prediction is high confidence (>= 0.70), trust raw color.
         # Gray-World white balance subtracts the dominant color of monochrome/dominant banknotes,
-        # which can artificially turn Lavender (₹100) or Magenta (₹2000) into Stone Grey (₹500).
+        # which can artificially turn Lavender (₹100) or Bright Yellow (₹200) into Stone Grey (₹500).
         if conf_raw >= 0.70:
             return pred_raw, conf_raw, proba_raw
 
@@ -322,20 +308,16 @@ class DenominationClassifier:
     ) -> Tuple[str, float, Dict[str, float]]:
         """Fallback prediction rule if model weights are not yet loaded."""
         h_mean = float(feature_vector[0])
-        s_mean = float(feature_vector[2])
 
-        # Lavender ₹100: Hue 120-145
+        # Lavender ₹100: Hue 115-145
         if 115 <= h_mean <= 145:
-            return "100", 0.90, {"100": 0.90, "200": 0.03, "500": 0.05, "2000": 0.02}
-        # Bright Yellow ₹200: Hue 15-35
+            return "100", 0.90, {"100": 0.90, "200": 0.05, "500": 0.05}
+        # Bright Yellow ₹200: Hue 10-35
         elif 10 <= h_mean <= 35:
-            return "200", 0.92, {"100": 0.02, "200": 0.92, "500": 0.04, "2000": 0.02}
-        # Magenta ₹2000: Hue 145-175
-        elif 145 < h_mean <= 178:
-            return "2000", 0.88, {"100": 0.05, "200": 0.02, "500": 0.05, "2000": 0.88}
+            return "200", 0.92, {"100": 0.04, "200": 0.92, "500": 0.04}
         # Stone Grey ₹500: Low saturation or Hue 35-85
         else:
-            return "500", 0.85, {"100": 0.05, "200": 0.05, "500": 0.85, "2000": 0.05}
+            return "500", 0.85, {"100": 0.08, "200": 0.07, "500": 0.85}
 
     def explain_decision_rules(self) -> str:
         """

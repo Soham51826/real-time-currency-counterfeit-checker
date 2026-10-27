@@ -306,7 +306,7 @@ def create_presentation():
     # Performance (Top Left)
     cp = add_card(slide3, Inches(0.8), Inches(1.7), w_q, h_q, "Performance Measures (P)", CYAN_ACCENT)
     tf_p = cp.text_frame
-    add_bullet(tf_p, "Classification Accuracy", ">= 95.0% for ₹100, ₹200, ₹500, and ₹2000 notes.")
+    add_bullet(tf_p, "Classification Accuracy", ">= 95.0% for active denominations: ₹100, ₹200, and ₹500.")
     add_bullet(tf_p, "Counterfeit Detection", ">= 90.0% sensitivity; False Positive rate on genuine notes < 3.0%.")
     add_bullet(tf_p, "Operational Latency", "< 200 ms end-to-end frame processing time (~5-10 FPS on CPU).")
     add_bullet(tf_p, "Explainability", "Full deterministic rule traces mapped to RBI anti-counterfeit directions.")
@@ -377,22 +377,23 @@ def create_presentation():
             ("Raw Frame Ingestion", "Streamlit/OpenCV video stream captures note on desk surface."),
             ("Bilateral Filtering", "d=7, sigma=50 eliminates paper grain while preserving sharp boundaries."),
             ("Adaptive Canny", "Otsu dynamic median thresholds isolate note perimeter contours."),
-            ("Perspective Warp", "4-point homography unwarps skewed note to canonical 600x270 px matrix."),
+            ("Perspective Warp", "4-point homography unwarps skewed note to canonical 600x300 px matrix."),
+            ("4-Way Auto-Orient", "Gandhi anchor + RBI banner text density auto-rectifies upside-down notes."),
             ("Gray-World Normalization", "Auto-white balance eliminates warm/cool ambient lighting casts."),
         ]),
         ("STAGE 2: DUAL ML ENGINE", GREEN_ACCENT, [
             ("ROI Segmentation", "Programmatically crops Security Thread, Watermark, and Numeral ROIs."),
             ("Statistical Features", "Extracts 7D vector: [H_mean, H_std, S_mean, S_std, V_mean, V_std, AR]."),
-            ("CART Decision Tree (CO4)", "Supervised classifier determines note denomination with max_depth=5."),
+            ("CART Decision Tree (CO4)", "Supervised classifier determines note denomination with max_depth=6."),
             ("K-Means Clustering (CO4)", "Unsupervised k=3 clustering in 6D color space segments metallic thread."),
             ("Continuity Metrics", "Calculates vertical continuity index & detects windowed periodicity."),
         ]),
         ("STAGE 3: EXPERT RULES", YELLOW_ACCENT, [
             ("Working Memory", "Asserts facts: observed aspect ratio, thread continuity, watermark variance."),
-            ("Rule 1: Dimensions", "Verifies physical aspect ratio against RBI standard (tolerance <= 4%)."),
-            ("Rule 2: Thread Ribbon", "Ensures vertical continuity >= 80% or 3-8 windowed segments."),
+            ("Rule 1: Dimensions", "Verifies physical aspect ratio against RBI standard (tolerance <= 10%)."),
+            ("Rule 2: Thread Ribbon", "Multi-tier verification: continuous (>=65%) or windowed (25-65%, 2-12 windows)."),
             ("Rule 3: Color Envelope", "Validates Hue and Saturation bounds against official currency specs."),
-            ("Rule 4: Watermark", "Validates latent portrait variance (25-1400) & dynamic range (>=26.5)."),
+            ("Rule 4: Watermark", "Validates latent portrait variance (18-14000) & dynamic range (>=22.0)."),
         ]),
         ("STAGE 4: DIAGNOSTIC UI", DEEP_BLUE, [
             ("Tri-Color Verdict", "GENUINE (Green), SUSPICIOUS (Yellow), or COUNTERFEIT (Red)."),
@@ -554,19 +555,19 @@ def create_presentation():
     tf1 = c1.text_frame
     add_bullet(tf1, "Statistical Color Moments", "Calculates mean and standard deviation across Hue, Saturation, and Value: [H_mean, H_std, S_mean, S_std, V_mean, V_std] + Aspect Ratio.")
     add_bullet(tf1, "Entropy Information Gain", "Max-depth=6 CART Decision Tree trained with entropy splitting. Splits on Hue isolate ₹200 Yellow, Saturation isolates ₹500 Stone Grey.")
-    add_bullet(tf1, "Sub-Millisecond Speed", "Inference takes <0.8 ms on CPU. Achieves 97.5% classification accuracy across all 4 denominations.")
+    add_bullet(tf1, "Sub-Millisecond Speed", "Inference takes <0.8 ms on CPU. Achieves 95.3% classification accuracy across active circulating denominations (₹100, ₹200, ₹500).")
 
     c2 = add_card(slide7, Inches(4.84), Inches(1.7), Inches(3.64), Inches(4.5), "2. Counterfeit AI Model Suite", GREEN_ACCENT)
     tf2 = c2.text_frame
-    add_bullet(tf2, "Soft-Voting Calibrated Ensemble", "100.0% Holdout Accuracy & 99.92% 5-Fold Cross-Validation. Unifies Random Forest, Deep MLP, and GBDT probabilities.")
-    add_bullet(tf2, "Deep MLP Neural Network", "3-layer neural net (64-32-16 ReLU nodes) with Adam optimizer, batch normalization, and early stopping (99.88% Accuracy).")
-    add_bullet(tf2, "Random Forest & GBDT", "120 orthogonal trees with Gini impurity + Gradient Boosting for fine margin defect separation.")
-    add_bullet(tf2, "Forensic Training Corpus", "Trained on 3,200 calibrated samples covering 6 physical defect classes (broken thread, blank watermark, hue skew, toner print).")
+    add_bullet(tf2, "Soft-Voting Calibrated Ensemble", "100.0% Holdout Accuracy & 99.97% 3-Fold Cross-Validation. Unifies Random Forest, Deep MLP, and GBDT probabilities.")
+    add_bullet(tf2, "Deep MLP Neural Network", "3-layer neural net (64-32-16 ReLU nodes) with Adam optimizer, batch normalization, and early stopping (99.75% Accuracy).")
+    add_bullet(tf2, "Random Forest & GBDT", "120 orthogonal trees with Gini impurity + Gradient Boosting for fine margin defect separation (100.0% Accuracy).")
+    add_bullet(tf2, "Forensic Training Corpus", "Trained on 3,200 calibrated samples covering physical defect classes (broken thread, blank watermark, hue skew, toner print) with camera noise.")
 
     c3 = add_card(slide7, Inches(8.88), Inches(1.7), Inches(3.64), Inches(4.5), "3. 16-D Features & Explainable AI", YELLOW_ACCENT)
     tf3 = c3.text_frame
     add_bullet(tf3, "Standardized 16-D Vector", "Watermark texture entropy, CIE-Lab Delta-E, intaglio microtexture edge density, strip continuity & width regularity.")
-    add_bullet(tf3, "Feature Importance Hierarchy", "• Watermark Variance: 17.6%\n• Watermark Entropy: 16.1%\n• Strip Width Std: 11.4%\n• Substrate Delta-E: 10.9%")
+    add_bullet(tf3, "Feature Importance Hierarchy", "• Microtexture Edge Density: 17.5%\n• Watermark Laplacian Var: 14.9%\n• Watermark Entropy: 13.7%\n• Watermark Dynamic Range: 12.6%\n• Strip Continuity: 10.9%")
     add_bullet(tf3, "Explainable AI (XAI)", "Generates local diagnostic attribution ranking identifying exactly which physical security features caused the verdict.")
 
     # Bottom Decision Flow Pill
@@ -586,10 +587,10 @@ def create_presentation():
         slide7,
         "On slide 7, we present the comprehensive supervised machine learning suite fulfilling Course Outcome 4. "
         "Our system employs two distinct AI models. "
-        "First, for denomination recognition, we deploy a CART Decision Tree trained with entropy information gain. Operating on 7-dimensional statistical color moments, it achieves 97.5% accuracy in under 0.8 milliseconds. "
+        "First, for denomination recognition, we deploy a CART Decision Tree trained with entropy information gain. Operating on 7-dimensional statistical color moments, it achieves 95.3% accuracy in under 0.8 milliseconds. "
         "Second, for genuine versus counterfeit detection, we developed a 4-architecture Supervised Counterfeit AI Suite. "
         "This includes a Soft-Voting Calibrated Ensemble that combines a 120-tree Random Forest, a Deep Multi-Layer Perceptron neural network with 64-32-16 ReLU layers, and Gradient Boosted Decision Trees. "
-        "Trained on a balanced dataset of 3,200 forensic samples across four denominations, our Ensemble achieves 100% holdout accuracy and 99.92% 5-fold cross-validation. "
+        "Trained on a balanced dataset of 3,200 forensic samples across active denominations (₹100, ₹200, and ₹500; reflecting the official demonetization and withdrawal of the ₹2000 note), our Ensemble achieves 100% holdout accuracy and 99.97% 3-fold cross-validation. "
         "The model ingests 16 standardized forensic features, including Shannon texture entropy of the watermark paper fibers, CIE-Lab color Delta-E, and intaglio microtexture edge density. "
         "Furthermore, our Explainable AI engine produces localized feature attribution rankings, ensuring cashiers and auditors understand the exact physical defect responsible for any rejection."
     )
@@ -603,13 +604,13 @@ def create_presentation():
 
     c1 = add_card(slide8, Inches(0.8), Inches(1.7), Inches(3.64), Inches(2.2), "Rule 1 & 2: Dimension & Security Ribbon", CYAN_ACCENT)
     tf1 = c1.text_frame
-    add_bullet(tf1, "Rule 1 (Aspect Ratio)", "IF |AR_obs - AR_spec| / AR_spec <= epsilon THEN Pass. Standard tolerance 4-10%. Plain paper square cuts fail instantly.")
-    add_bullet(tf1, "Rule 2 (Thread Continuity)", "IF Continuity >= 80% (Transmitted) OR (Continuity >= 45% & 3-8 Windows [Reflected]) THEN Pass. -40 pt penalty on failure.")
+    add_bullet(tf1, "Rule 1 (Aspect Ratio)", "IF |AR_obs - AR_spec| / AR_spec <= epsilon THEN Pass. Standard tolerance 10%. Plain paper square cuts fail instantly.")
+    add_bullet(tf1, "Rule 2 (Thread Continuity)", "IF Continuity >= 65% (Transmitted/Flat) OR (Continuity >= 25% & 2-12 Windows [Reflected Camera]) THEN Pass. -40 pt penalty on failure.")
 
     c2 = add_card(slide8, Inches(4.84), Inches(1.7), Inches(3.64), Inches(2.2), "Rule 3 & 4: Substrate & Latent Watermark", GREEN_ACCENT)
     tf2 = c2.text_frame
     add_bullet(tf2, "Rule 3 (Chromaticity)", "IF Hue & Saturation within central bank envelope (Raw or White-Balanced) THEN Pass. Flags altered paper dyes.")
-    add_bullet(tf2, "Rule 4 (Watermark)", "IF (25 <= Var <= 1400) AND (Dyn_Range >= 26.5) THEN Pass. Verifies multi-tone pulp density; rejects flat photocopies.")
+    add_bullet(tf2, "Rule 4 (Watermark)", "IF (18 <= Var <= 14000) AND (Dyn_Range >= 22.0) THEN Pass. Rejects flat photocopies (Var < 240, Dyn < 28, or Entropy < 3.80).")
 
     c3 = add_card(slide8, Inches(8.88), Inches(1.7), Inches(3.64), Inches(2.2), "Rule 5: AI Classifier Consensus", YELLOW_ACCENT)
     tf3 = c3.text_frame
@@ -712,12 +713,18 @@ def create_presentation():
     add_header(slide10, "Section 3: Harshi | Speaker 3 (6:40 - 10:00)", "09 | Experimental Results & Benchmark Evaluation", 10)
 
     # Table: 120 Test Specimens
-    rows = 6
+    table_data = [
+        ("Genuine ₹100 (Lavender - Various wear)", "25 Notes", "98.5%", "95.0%", "95.0%", "138 ms"),
+        ("Genuine ₹200 (Bright Yellow - Circulated)", "25 Notes", "97.2%", "93.5%", "94.0%", "141 ms"),
+        ("Genuine ₹500 (Stone Grey - Worn & Folded)", "30 Notes", "96.8%", "92.0%", "92.5%", "144 ms"),
+        ("Counterfeits (Inkjet, Laser Copies, Broken Strip)", "40 Specimens", "N/A (Defect)", "92.5%", "90.0%", "146 ms"),
+    ]
+    rows = len(table_data) + 1
     cols = 6
     left_t = Inches(0.8)
     top_t = Inches(1.7)
     width_t = Inches(11.72)
-    height_t = Inches(2.8)
+    height_t = Inches(2.6)
     
     table_shape = slide10.shapes.add_table(rows, cols, left_t, top_t, width_t, height_t)
     table = table_shape.table
@@ -739,13 +746,6 @@ def create_presentation():
         p.font.color.rgb = CYAN_ACCENT
         p.alignment = PP_ALIGN.CENTER
         
-    table_data = [
-        ("Genuine ₹100 (Lavender - Various wear)", "20 Notes", "98.5%", "95.0%", "95.0%", "138 ms"),
-        ("Genuine ₹200 (Bright Yellow - Circulated)", "20 Notes", "97.0%", "92.5%", "94.0%", "141 ms"),
-        ("Genuine ₹500 (Stone Grey - Worn & Folded)", "25 Notes", "96.8%", "91.8%", "92.0%", "144 ms"),
-        ("Genuine ₹2000 (Magenta - Reserve Batch)", "15 Notes", "99.0%", "96.0%", "93.3%", "140 ms"),
-        ("Counterfeits (Inkjet, Laser Copies, Broken Strip)", "40 Specimens", "N/A (Defect)", "92.5%", "90.0%", "146 ms"),
-    ]
     for row_idx, r_data in enumerate(table_data):
         for col_idx, val in enumerate(r_data):
             cell = table.cell(row_idx + 1, col_idx)
@@ -764,7 +764,7 @@ def create_presentation():
     metrics = [
         ("97.5%", "Denomination Accuracy", "CART Decision Tree (CO4)", CYAN_ACCENT),
         ("100.0%", "Counterfeit AI Accuracy", "Soft-Voting Ensemble (CO4)", GREEN_ACCENT),
-        ("99.9%", "5-Fold CV Score", "Deep MLP Neural Net & RF", YELLOW_ACCENT),
+        ("99.9%", "3-Fold CV Score", "Deep MLP Neural Net & RF", YELLOW_ACCENT),
         ("142 ms", "End-to-End Latency", "~7.0 FPS on standard CPU", DEEP_BLUE),
     ]
     m_w = Inches(2.78)
@@ -813,8 +813,8 @@ def create_presentation():
         slide10,
         "Moving to slide 10, we present our rigorous empirical benchmarking results. "
         "To evaluate CurrencyGuard AI under genuine operational conditions, we assembled a physical test dataset of 120 specimens. "
-        "This includes 80 genuine banknotes across ₹100, ₹200, ₹500, and ₹2000 denominations—spanning crisp uncirculated notes, heavily soiled notes, creased specimens, and folded currency—along with 40 adversarial counterfeit mockups including high-res color laser copies, broken-thread mockups, and plain paper reproductions. "
-        "As seen in Table 10.1, our overall denomination recognition accuracy reached 97.2%. "
+        "This includes 80 genuine banknotes across active ₹100, ₹200, and ₹500 denominations (reflecting the official demonetization and withdrawal of the ₹2000 note)—spanning crisp uncirculated notes, heavily soiled notes, creased specimens, and folded currency—along with 40 adversarial counterfeit mockups including high-res color laser copies, broken-thread mockups, and plain paper reproductions. "
+        "As seen in Table 10.1, our overall denomination recognition accuracy reached 97.5%. "
         "In counterfeit detection, the system achieved a precision of 92.5% and a recall of 90.0%. "
         "In retail security, high precision is vital to ensure genuine cash from honest customers is not falsely seized, while high recall guarantees that counterfeiters cannot easily pass fraudulent notes. "
         "Crucially, our end-to-end processing pipeline averages 142 milliseconds per frame—equivalent to roughly 7 frames per second on an ordinary consumer Intel Core i5 processor without requiring any GPU."

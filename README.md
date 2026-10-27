@@ -19,6 +19,28 @@ Designed and structured in strict compliance with Academic AI Curriculum Standar
 
 ---
 
+## 💡 Pure On-Device Architecture: Why is there an "AI / ML Verdict" without any Gemini API?
+
+> [!IMPORTANT]
+> **Understanding Artificial Intelligence in this Project (Local Machine Learning vs. Cloud LLMs):**
+> In popular conversation, the term **"AI"** is frequently confused with **Cloud Generative Large Language Models (LLMs)** like Google Gemini, ChatGPT, or Claude.
+> 
+> In Computer Science and the university AI curriculum, **Artificial Intelligence is a broad academic discipline**:
+> 1. **Zero Cloud Calls / Zero Gemini API**:
+>    - This project contains **ZERO external API calls, ZERO cloud servers, and ZERO API keys**.
+>    - You do not need any Gemini API key, billing account, or internet connection to run this system.
+> 2. **Where the "AI Model Verdict" and "AI Authenticity" Actually Come From**:
+>    - The verdict and authenticity percentage displayed on your dashboard are computed by **Classical Scikit-Learn Supervised Machine Learning models** running **100% locally on your computer's CPU in $<1\text{ ms}$**.
+>    - Located in [`counterfeit_classifier.py`](counterfeit_classifier.py), this local AI engine ingests **16 mathematical computer vision forensic features** (Shannon texture entropy of paper fibers, watermark luminance variance, intaglio microtexture edge density, security thread vertical continuity, and CIE-Lab perceptual color distance $\Delta E$).
+>    - It evaluates these features using a **Soft-Voting Calibrated Ensemble** (combining a 120-tree Random Forest, a Deep Multi-Layer Perceptron neural network with 64-32-16 ReLU nodes, and Gradient Boosted Decision Trees).
+> 3. **The Neuro-Symbolic Consensus (CO3 + CO4)**:
+>    - The final **Tri-Color Verdict Banner** (`GENUINE`, `SUSPICIOUS`, `COUNTERFEIT`) is computed by a **Neuro-Symbolic Expert System** ([`expert_system.py`](expert_system.py)):
+>      - **Symbolic AI (CO3)**: Evaluates deterministic production rules based on official Reserve Bank of India (RBI) physical security specifications (thread continuity, watermark presence, dimension bounds, and substrate color).
+>      - **Sub-Symbolic Machine Learning AI (CO4)**: Provides a probabilistic authenticity score based on statistical pattern recognition of forensic paper features.
+>    - When **both** the physical rules pass and the local ML model indicates authentic banknote substrate, the system issues the **GENUINE** consensus verdict!
+
+---
+
 ## 🏛️ System Architecture
 
 ```
@@ -27,36 +49,38 @@ Designed and structured in strict compliance with Academic AI Curriculum Standar
                            ┌───────────────▼────────────────┐
                            │   Module 1: Vision Pipeline    │
                            │  - Adaptive Canny & Contours   │
-                           │  - 4-Point Perspective Warp    │
+                           │  - 4-Point Homography Warp     │
+                           │  - 4-Way Auto-Orientation      │
+                           │  - Dual Color Constancy        │
                            │  - ROI Extraction (Strip, WM)  │
-                           │  - K-Means Color Segmentation  │
                            │  - 16-D Forensic Feature Vec   │
                            └───────┬──────────────┬─────────┘
                                    │              │
-             Extracted HSV Moments │              │ Standardized 16-D Vector & Cropped ROIs
-             & Warped Canvas Image │              │
+             Extracted HSV Moments │              │ Standardized 16-D Vector
+             & Warped Canvas Image │              │ & Cropped Forensic ROIs
                                    ▼              ▼
-     ┌────────────────────────┐  ┌───────────────────────┐  ┌─────────────────────────┐
-     │  Decision Tree (CO4)   │  │ AI Suite (CO4)        │  │ Multimodal Vision AI    │
-     └──────────┬─────────────┘  └──────────┬────────────┘  └───────────┬─────────────┘
-                │ Denomination              │ Authenticity Prob & XAI   │ Forensic Verdict,
-                └──────────────┬────────────┘                           │ Audit Checklist &
-                               ▼                                        │ Live Viva Q&A Chat
-               ┌────────────────────────────────┐                       │
-               │ Module 3: Expert System Engine │                       │
-               │ - Forward-Chaining (CO3)       │                       │
-               │ - Rules 1-5 Verification       │                       │
-               │ - Neuro-Symbolic Consensus     │                       │
-               └───────────────┬────────────────┘                       │
-                               │                                        │
-                               └────────────────┬───────────────────────┘
-                                                ▼
+                     ┌────────────────────────┐  ┌───────────────────────┐
+                     │  Decision Tree (CO4)   │  │ Counterfeit AI Suite  │
+                     │  - Entropy Splitting   │  │ - Ensemble, MLP, RF,  │
+                     │  - Denomination Model  │  │   GBDT & XAI Rankings │
+                     └──────────┬─────────────┘  └──────────┬────────────┘
+                                │ Denomination              │ Authenticity Prob & XAI
+                                └──────────────┬────────────┘
+                                               ▼
+                               ┌────────────────────────────────┐
+                               │ Module 3: Expert System Engine │
+                               │ - Forward-Chaining (CO3)       │
+                               │ - Rules 1-4 Verification       │
+                               │ - Neuro-Symbolic Consensus     │
+                               └───────────────┬────────────────┘
+                                               │
+                                               ▼
                                ┌────────────────────────────────┐
                                │ Module 4: Streamlit UI         │
                                │ - Real-time Visual Overlays    │
                                │ - Tri-Color Authenticity Banner│
                                │ - Local AI Forensic Tab Panels │
-                               │ - Interactive Forensic Chat    │
+                               │ - Forward-Chaining Audit HUD   │
                                └────────────────────────────────┘
 ```
 
@@ -95,7 +119,7 @@ Located in `expert_system.py`, the `VerificationExpertSystem` implements an AI f
 
 #### Supervised Denomination Classifier (`classifier.py`)
 - Fits an `sklearn.tree.DecisionTreeClassifier(max_depth=6, criterion='entropy')` using Information Gain on statistical HSV moments and aspect ratio.
-- Achieves **97.5% holdout test accuracy** on distinct denomination classes (₹100, ₹200, ₹500, ₹2000) with sub-millisecond execution ($<0.8\text{ ms}$).
+- Achieves **95.3% holdout test accuracy** on active circulating denomination classes (₹100 Lavender, ₹200 Bright Yellow, ₹500 Stone Grey) with sub-millisecond execution ($<0.8\text{ ms}$).
 
 #### Supervised Counterfeit AI Suite (`counterfeit_classifier.py`)
 - Operates on a **16-dimensional standardized forensic feature vector**:
@@ -133,7 +157,6 @@ Located in `expert_system.py`, the `VerificationExpertSystem` implements an AI f
 
 ```
 Real-Time Currency and Counterfeit checker/
-├── .env.example                   # Template environment configuration file
 ├── app.py                         # Module 4: Modern Streamlit Forensic Dashboard & Dual UI
 ├── vision_pipeline.py             # Module 1: OpenCV Preprocessing, Homography, K-Means & 16-D Features
 ├── classifier.py                  # Module 2: Supervised Decision Tree Denomination Classifier
@@ -144,9 +167,9 @@ Real-Time Currency and Counterfeit checker/
 ├── test_inspect_samples.py        # Advanced interactive sample inspection utility
 ├── generate_presentation_pptx.py  # Presentation generator (12-slide dark-mode technical defense)
 ├── generate_report_docx.py        # Academic project report generator (.docx)
-├── requirements.txt               # Pinned production dependencies (inc. google-generativeai, python-dotenv)
+├── requirements.txt               # Pinned local production dependencies
 ├── data/
-│   ├── currency_features.csv      # Denomination training data (1,600 samples)
+│   ├── currency_features.csv      # Denomination training data (1,200 samples)
 │   └── counterfeit_detection_dataset.csv # 16-D Counterfeit forensic dataset (3,200 samples)
 ├── models/
 │   ├── denomination_tree.joblib   # Serialized Denomination Tree model
@@ -156,7 +179,6 @@ Real-Time Currency and Counterfeit checker/
     ├── genuine_100.png
     ├── genuine_200.png
     ├── genuine_500.png
-    ├── genuine_2000.png
     ├── counterfeit_broken_thread.png
     ├── counterfeit_blank_watermark.png
     ├── counterfeit_wrong_color.png
@@ -193,10 +215,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-  ```env
-  ```
-
-### 5. Run Automated Verification Tests
+### 4. Run Automated Verification Tests
 Executes full regression tests across all genuine and counterfeit test cases:
 ```bash
 python test_pipeline.py
@@ -214,7 +233,7 @@ Access the application in your browser at `http://localhost:8501`.
 
 ## 🧪 Built-in Test Cases
 You can instantly evaluate the system using the preset dropdown in the Streamlit sidebar:
-1. **Genuine ₹100, ₹200, ₹500, ₹2000**: Evaluates valid notes; all 4 forward-chaining rules pass with `GENUINE` banner.
+1. **Genuine ₹100, ₹200, ₹500**: Evaluates active circulating banknotes (reflecting the official demonetization/withdrawal of the ₹2000 note); all 4 forward-chaining rules pass with `GENUINE` banner.
 2. **Counterfeit: Broken Security Thread**: Simulates broken or painted metallic ribbon; fails Rule 2 (`continuity < 50%`) with `COUNTERFEIT` banner.
 3. **Counterfeit: Blank Watermark Window**: Simulates flat unwatermarked paper; fails Rule 4 (`variance < 70`) with `COUNTERFEIT` banner.
 4. **Counterfeit: Altered Substrate Color**: Simulates wrong printer toner; fails Rule 3 (`color consistency violation`) with `COUNTERFEIT` banner.

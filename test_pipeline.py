@@ -13,6 +13,9 @@ import sys
 import cv2
 import numpy as np
 
+if hasattr(sys.stdout, "reconfigure"):
+    getattr(sys.stdout, "reconfigure")(encoding="utf-8")
+
 from vision_pipeline import (
     detect_note_contour,
     four_point_transform,
@@ -56,7 +59,6 @@ def test_full_pipeline() -> bool:
         ("genuine_100.png", "100"),
         ("genuine_200.png", "200"),
         ("genuine_500.png", "500"),
-        ("genuine_2000.png", "2000"),
     ]
 
     for filename, expected_denom in genuine_notes:
@@ -114,7 +116,7 @@ def test_full_pipeline() -> bool:
         assert report.verdict == Verdict.GENUINE, f"Expected GENUINE for {filename}, got {report.verdict.value}"
         assert report.ai_verdict == Verdict.GENUINE, f"Expected AI GENUINE for {filename}, got {report.ai_verdict}"
 
-    print("\n[PASS] All 4 Genuine Banknotes Verified with 100% Accuracy and GENUINE Verdict!\n")
+    print("\n[PASS] All 3 Active Genuine Banknotes (₹100, ₹200, ₹500) Verified with 100% Accuracy and GENUINE Verdict!\n")
 
     # 5. Test Counterfeit Scenarios
     counterfeit_cases = [

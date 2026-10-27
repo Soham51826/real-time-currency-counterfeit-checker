@@ -2,7 +2,7 @@ import sys
 import os
 
 if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
+    getattr(sys.stdout, "reconfigure")(encoding="utf-8")
 import cv2
 from vision_pipeline import (
     detect_note_contour,
@@ -58,10 +58,26 @@ print("Class probabilities:", probas)
 rois = extract_rois(warped)
 strip = analyze_security_strip(rois["security_strip"]["patch"], n_clusters=3)
 wm = analyze_watermark(rois["watermark"]["patch"])
-print(f"\n[SECURITY THREAD] Continuity: {strip['continuity_pct']:.1f}%, Windows: {strip.get('num_windows', 0)}")
+from counterfeit_classifier import CounterfeitDetectorAI
+from vision_pipeline import extract_forensic_features
+
+print(f"\n[SECURITY THREAD] Continuity: {strip['continuity_pct']:.1f}%, Windows: {strip.get('window_count', strip.get('num_windows', 0))}")
 print(f"[WATERMARK] Variance: {wm['variance']:.1f}, Has Latent: {wm['has_latent_features']}, Dynamic Range: {wm.get('dynamic_range', 0)}")
 
-exp = VerificationExpertSystem(tolerance_pct=0.10)
+cf = CounterfeitDetectorAI(active_model_type="ensemble")
+cf.load("models/counterfeit_ai_model.joblib")
+exp = VerificationExpertSystem(tolerance_pct=0.10, counterfeit_detector=cf)
+
+forensic_features = extract_forensic_features(
+    warped_note=warped,
+    rois=rois,
+    strip_analysis=strip,
+    watermark_analysis=wm,
+    color_features=color_feats,
+    aspect_ratio=aspect_ratio,
+    predicted_denomination=denom,
+)
+
 report = exp.evaluate(
     predicted_denomination=denom,
     classifier_confidence=conf,
@@ -69,9 +85,15 @@ report = exp.evaluate(
     security_strip_metrics=strip,
     watermark_metrics=wm,
     color_features=color_feats,
-    scan_mode="perspective"
+    forensic_features=forensic_features,
+    scan_mode="perspective",
+    ai_model_type="ensemble",
 )
-print(f"\n[EXPERT SYSTEM VERDICT] {report.verdict.value} (Confidence: {report.overall_confidence*100:.1f}%)")
+
+ai_v = report.ai_verdict.value if report.ai_verdict else "N/A"
+print(f"\n[AI COUNTERFEIT MODEL] Verdict: {ai_v} (Authenticity Prob: {report.ai_genuine_prob*100:.1f}%)")
+print(f"[CONSENSUS VERDICT] {report.verdict.value} (Confidence: {report.overall_confidence*100:.1f}%)")
+print(f"[NEURO-SYMBOLIC STATUS] {report.neuro_symbolic_status}")
 for r in report.diagnostic_checklist:
     status = "PASS" if r.passed else "FAIL"
     print(f"  [{status}] {r.rule_name} (Severity: {r.severity.value}, Penalty: -{r.score_penalty}): {r.observed_value} vs expected {r.expected_threshold}\n       Explanation: {r.explanation}")

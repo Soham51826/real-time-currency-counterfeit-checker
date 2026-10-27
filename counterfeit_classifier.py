@@ -51,7 +51,7 @@ FORENSIC_FEATURE_COLUMNS: List[str] = [
     "color_val_mean",           # Mean brightness / reflectance of note substrate
     "color_delta_e",            # CIE-Lab perceptual color difference from reference
     "microtexture_edge_density",# Ratio of sharp intaglio edges in central note area
-    "denomination_code",        # Denomination identifier (100:1, 200:2, 500:5, 2000:20)
+    "denomination_code",        # Denomination identifier (100:1, 200:2, 500:5)
 ]
 
 FORENSIC_FEATURE_DISPLAY_NAMES: Dict[str, str] = {
@@ -260,6 +260,13 @@ class CounterfeitDetectorAI:
 
         # In binary classification: index 1 is Genuine, index 0 is Counterfeit
         p_genuine = float(probabilities[1]) if len(probabilities) > 1 else float(probabilities[0])
+
+        # Physical boundary guard: Banknote cutting tolerance is ±2 mm (<8% error).
+        # An extreme aspect ratio error (>18%) indicates a physically non-compliant cut.
+        ar_err_val = float(feature_vector[0] if feature_vector.ndim == 1 else feature_vector[0, 0])
+        if ar_err_val > 0.18:
+            p_genuine = min(p_genuine, 0.15)
+
         p_counterfeit = float(1.0 - p_genuine)
 
         is_genuine = (p_genuine >= 0.50)
@@ -304,47 +311,47 @@ class CounterfeitDetectorAI:
             "weight": global_importances.get("aspect_ratio_error", 0.08),
         })
 
-        # Feature 1: strip_continuity (ideal >= 70%)
+        # Feature 1: strip_continuity (ideal >= 65% continuous or >= 25% windowed)
         strip_cont = vec[1]
         explanations.append({
             "feature": "strip_continuity",
             "name": "Security Thread Continuity",
             "value": f"{strip_cont:.1f}%",
-            "impact": "Authentic Ribbon" if strip_cont >= 70.0 else "Broken / Missing Ribbon",
-            "severity": "Critical" if strip_cont < 60.0 else "Normal",
+            "impact": "Authentic Ribbon" if strip_cont >= 25.0 else "Broken / Missing Ribbon",
+            "severity": "Critical" if strip_cont < 20.0 else "Normal",
             "weight": global_importances.get("strip_continuity", 0.22),
         })
 
-        # Feature 5: watermark_variance (ideal 25 - 6500)
+        # Feature 5: watermark_variance (ideal 25 - 12000)
         wm_var = vec[5]
         explanations.append({
             "feature": "watermark_variance",
             "name": "Watermark Latent Contrast",
             "value": f"{wm_var:.1f}",
-            "impact": "Authentic Multi-Tone" if 25 <= wm_var <= 6500 else "Blank / Harsh Toner Stamp",
-            "severity": "High" if wm_var < 20 or wm_var > 7000 else "Normal",
+            "impact": "Authentic Multi-Tone" if 25 <= wm_var <= 12000 else "Blank / Harsh Toner Stamp",
+            "severity": "High" if wm_var < 20 or wm_var > 14000 else "Normal",
             "weight": global_importances.get("watermark_variance", 0.18),
         })
 
-        # Feature 8: watermark_entropy (ideal >= 4.10)
+        # Feature 8: watermark_entropy (ideal >= 3.80)
         wm_ent = vec[8]
         explanations.append({
             "feature": "watermark_entropy",
             "name": "Watermark Texture Entropy",
             "value": f"{wm_ent:.2f} bits",
-            "impact": "Fibrous Banknote Paper" if wm_ent >= 4.0 else "Flat Inkjet / Photocopy Paper",
-            "severity": "High" if wm_ent < 3.8 else "Normal",
+            "impact": "Fibrous Banknote Paper" if wm_ent >= 3.80 else "Flat Inkjet / Photocopy Paper",
+            "severity": "High" if wm_ent < 3.6 else "Normal",
             "weight": global_importances.get("watermark_entropy", 0.14),
         })
 
-        # Feature 9: color_hue_dev (ideal < 25)
+        # Feature 9: color_hue_dev (ideal < 35)
         hue_dev = vec[9]
         explanations.append({
             "feature": "color_hue_dev",
             "name": "Substrate Dye Chromaticity",
             "value": f"{hue_dev:.1f}° deviation",
-            "impact": "Conforming Central Bank Ink" if hue_dev < 30.0 else "Altered Toner Hue",
-            "severity": "High" if hue_dev > 35.0 else "Normal",
+            "impact": "Conforming Central Bank Ink" if hue_dev < 38.0 else "Altered Toner Hue",
+            "severity": "High" if hue_dev > 42.0 else "Normal",
             "weight": global_importances.get("color_hue_dev", 0.15),
         })
 
@@ -359,14 +366,15 @@ class CounterfeitDetectorAI:
         vec = feature_vector.flatten()
         ar_err = vec[0]
         strip_cont = vec[1]
+        strip_win = int(vec[2])
         wm_var = vec[5]
         wm_ent = vec[8]
         hue_dev = vec[9]
 
-        is_thread_ok = strip_cont >= 65.0
-        is_wm_ok = 25.0 <= wm_var <= 6500.0 and wm_ent >= 3.9
-        is_ar_ok = ar_err <= 0.12
-        is_color_ok = hue_dev <= 32.0
+        is_thread_ok = strip_cont >= 65.0 or (strip_cont >= 25.0 and 2 <= strip_win <= 12)
+        is_wm_ok = 25.0 <= wm_var <= 12000.0 and wm_ent >= 3.8
+        is_ar_ok = ar_err <= 0.14
+        is_color_ok = hue_dev <= 38.0
 
         passed_checks = sum([is_thread_ok, is_wm_ok, is_ar_ok, is_color_ok])
         is_genuine = passed_checks >= 3 and is_thread_ok

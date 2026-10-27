@@ -202,17 +202,22 @@ def auto_orient_note(warped_note: np.ndarray) -> Tuple[np.ndarray, int, str]:
     h, w = warped_note.shape[:2]
     gray = cv2.cvtColor(warped_note, cv2.COLOR_BGR2GRAY)
 
-    # Left third (watermark window) vs Right third (Gandhi portrait)
+    # 1. Top banner vs Bottom banner (Reserve Bank header text: 'RESERVE BANK OF INDIA')
+    top_banner = gray[: int(h * 0.25), int(w * 0.25) : int(w * 0.75)]
+    bot_banner = gray[int(h * 0.75) :, int(w * 0.25) : int(w * 0.75)]
+    top_dark = float(np.sum(top_banner < 100))
+    bot_dark = float(np.sum(bot_banner < 100))
+
+    # 2. Left third (watermark window) vs Right third (Gandhi portrait)
     left_roi = gray[:, : int(w * 0.35)]
     right_roi = gray[:, int(w * 0.65) :]
-
-    # Count dark engraved ink pixels (threshold < 110)
     left_dark = float(np.sum(left_roi < 110))
     right_dark = float(np.sum(right_roi < 110))
 
-    # If the left side has significantly higher dark ink density than the right,
-    # the note was scanned upside down!
-    if left_dark > (right_dark * 1.30):
+    # If the bottom banner has substantially more dark ink text than the top banner,
+    # or the left side has significantly higher dark ink density than the right,
+    # the note is inverted / upside-down!
+    if (bot_dark > (top_dark * 1.35)) or (left_dark > (right_dark * 1.35)):
         rotated = cv2.rotate(warped_note, cv2.ROTATE_180)
         return rotated, 180, "Inverted (180 deg) - Auto-Corrected to Obverse"
 
@@ -482,6 +487,9 @@ def extract_color_features(warped_note: np.ndarray) -> Dict[str, Any]:
         "wb_h_mean": float(np.mean(wb_h)),
         "wb_s_mean": float(np.mean(wb_s)),
         "wb_v_mean": float(np.mean(wb_v)),
+        "wb_r_mean": float(np.mean(wb_note[:, :, 2])),
+        "wb_g_mean": float(np.mean(wb_note[:, :, 1])),
+        "wb_b_mean": float(np.mean(wb_note[:, :, 0])),
     }
 
     # Normalized 16-bin Hue histogram
@@ -573,6 +581,10 @@ def analyze_security_strip(
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 4))
     cleaned_binary = cv2.morphologyEx(strip_binary, cv2.MORPH_CLOSE, kernel)
 
+    # Vertical morphological closing to bridge 1-3 pixel noise gaps along vertical scanlines
+    kernel_v = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 7))
+    v_closed = cv2.morphologyEx(cleaned_binary, cv2.MORPH_CLOSE, kernel_v)
+
     # Vertical Continuity & Scanline Profiling
     row_hits = 0
     row_widths = []
@@ -580,7 +592,7 @@ def analyze_security_strip(
     active_rows = []
 
     for y in range(h):
-        row = cleaned_binary[y, center_start:center_end]
+        row = v_closed[y, center_start:center_end]
         pixel_count = int(np.count_nonzero(row))
         density = float(pixel_count / max(1, (center_end - center_start)))
         row_density.append(density)
@@ -594,21 +606,23 @@ def analyze_security_strip(
     mean_width = float(np.mean(row_widths)) if row_widths else 0.0
     std_width = float(np.std(row_widths)) if row_widths else 0.0
 
-    # Windowed segment count (connected runs of metallic scanlines)
+    # Windowed segment count: filter out single-pixel flickers (< 4 scanlines)
     window_count = 0
-    in_segment = False
+    cur_seg_len = 0
     for hit in active_rows:
         if hit:
-            if not in_segment:
-                in_segment = True
-                window_count += 1
+            cur_seg_len += 1
         else:
-            in_segment = False
+            if cur_seg_len >= 4:
+                window_count += 1
+            cur_seg_len = 0
+    if cur_seg_len >= 4:
+        window_count += 1
 
     is_continuous = continuity_pct >= 65.0
-    # Authentic windowed security threads exhibit 3 to 8 distinct windows
+    # Authentic windowed security threads exhibit 2 to 8 distinct windows
     # with continuity between 25% and 65% in reflected light
-    is_windowed = 3 <= window_count <= 8 and 25.0 <= continuity_pct < 65.0
+    is_windowed = (2 <= window_count <= 8) and (25.0 <= continuity_pct < 65.0)
 
     # Cluster centroids in BGR
     bgr_pixels = strip_roi.reshape(-1, 3).astype(np.float32)
@@ -673,9 +687,18 @@ def analyze_watermark(watermark_roi: np.ndarray) -> Dict[str, Any]:
     entropy_val = float(-np.sum(hist_nonzero * np.log2(hist_nonzero)))
 
     # Authentic banknotes exhibit subtle multi-tone latent gradients and paper texture.
-    # Plain paper counterfeits have flat paper (variance < 25, dyn range < 22).
-    # Real camera captures with sensor noise and genuine multi-tone watermarks reach up to 6500 variance.
-    has_latent = 25.0 <= variance <= 6500.0 and dynamic_range >= 22.0
+    # Plain paper counterfeits have flat paper (variance < 240 with low dyn range, or blurred with low entropy & laplacian).
+    # Real camera captures with sensor noise and genuine multi-tone watermarks:
+    #   variance can reach up to ~12000 due to complex portrait + intaglio details.
+    # Opaque stamped counterfeit: very high variance (>14000) AND high dyn range (>95).
+    is_blank = (
+        (dynamic_range < 28.0 and variance < 240.0)
+        or (laplacian_var < 320.0 and entropy_val < 3.80)
+        or (dynamic_range < 18.0)
+        or (variance < 18.0)
+    )
+    is_stamped = variance > 14000.0 and dynamic_range > 95.0
+    has_latent = not is_blank and not is_stamped
 
     return {
         "variance": round(variance, 2),
@@ -777,21 +800,28 @@ def compute_color_delta_e(color_features: Dict[str, Any], denomination: str) -> 
         "100": (215, 175, 185),   # Lavender
         "200": (70, 205, 245),    # Bright Warm Yellow
         "500": (175, 192, 180),   # Stone Olive Grey
-        "2000": (170, 105, 225),  # Vivid Magenta
     }
     bgr_target = reference_bgr.get(denomination, (175, 192, 180))
     target_mat = np.array([[bgr_target]], dtype=np.uint8)
     target_lab = cv2.cvtColor(target_mat, cv2.COLOR_BGR2Lab)[0, 0].astype(np.float32)
 
-    # Use observed substrate mean RGB to evaluate perceptual chromaticity
-    r = int(np.clip(color_features.get("r_mean", 175.0), 0, 255))
-    g = int(np.clip(color_features.get("g_mean", 192.0), 0, 255))
-    b = int(np.clip(color_features.get("b_mean", 180.0), 0, 255))
-    obs_mat = np.array([[[b, g, r]]], dtype=np.uint8)
-    obs_lab = cv2.cvtColor(obs_mat, cv2.COLOR_BGR2Lab)[0, 0].astype(np.float32)
+    # Use observed substrate mean RGB to evaluate perceptual chromaticity (both raw and wb)
+    r_raw = int(np.clip(color_features.get("r_mean", 175.0), 0, 255))
+    g_raw = int(np.clip(color_features.get("g_mean", 192.0), 0, 255))
+    b_raw = int(np.clip(color_features.get("b_mean", 180.0), 0, 255))
+    obs_raw_mat = np.array([[[b_raw, g_raw, r_raw]]], dtype=np.uint8)
+    obs_raw_lab = cv2.cvtColor(obs_raw_mat, cv2.COLOR_BGR2Lab)[0, 0].astype(np.float32)
+    delta_e_raw = float(np.linalg.norm(obs_raw_lab - target_lab))
 
-    delta_e = float(np.linalg.norm(obs_lab - target_lab))
-    return round(delta_e, 2)
+    # Also evaluate calibrated white-balance BGR if available
+    r_wb = int(np.clip(color_features.get("wb_r_mean", r_raw), 0, 255))
+    g_wb = int(np.clip(color_features.get("wb_g_mean", g_raw), 0, 255))
+    b_wb = int(np.clip(color_features.get("wb_b_mean", b_raw), 0, 255))
+    obs_wb_mat = np.array([[[b_wb, g_wb, r_wb]]], dtype=np.uint8)
+    obs_wb_lab = cv2.cvtColor(obs_wb_mat, cv2.COLOR_BGR2Lab)[0, 0].astype(np.float32)
+    delta_e_wb = float(np.linalg.norm(obs_wb_lab - target_lab))
+
+    return round(float(min(delta_e_raw, delta_e_wb)), 2)
 
 
 def extract_forensic_features(
@@ -814,9 +844,9 @@ def extract_forensic_features(
     from classifier import DENOMINATION_SPECS
 
     predicted_denomination = str(kwargs.get("pred_denom", predicted_denomination))
-    strip_analysis = strip_analysis or kwargs.get("security_strip_metrics") or {}
-    watermark_analysis = watermark_analysis or kwargs.get("watermark_metrics") or {}
-    color_features = color_features or kwargs.get("color_features") or {}
+    s_analysis: Dict[str, Any] = strip_analysis if strip_analysis is not None else (kwargs.get("security_strip_metrics") or {})
+    w_analysis: Dict[str, Any] = watermark_analysis if watermark_analysis is not None else (kwargs.get("watermark_metrics") or {})
+    c_features: Dict[str, Any] = color_features if color_features is not None else (kwargs.get("color_features") or {})
     aspect_ratio = aspect_ratio if aspect_ratio is not None else kwargs.get("aspect_ratio")
 
     denom_spec = DENOMINATION_SPECS.get(predicted_denomination, DENOMINATION_SPECS["500"])
@@ -827,52 +857,53 @@ def extract_forensic_features(
     ar_error = float(abs(obs_ar - target_ar) / target_ar)
 
     # 2. strip continuity
-    strip_continuity = float(strip_analysis.get("continuity_pct", 0.0))
+    strip_continuity = float(s_analysis.get("continuity_pct", 0.0))
 
     # 3. strip window count
-    strip_window_count = float(strip_analysis.get("window_count", 0))
+    strip_window_count = float(s_analysis.get("window_count", 0))
 
     # 4. strip width mean
-    strip_width_mean = float(strip_analysis.get("thread_width_mean", 0.0))
+    strip_width_mean = float(s_analysis.get("thread_width_mean", 0.0))
 
     # 5. strip width std
-    strip_width_std = float(strip_analysis.get("thread_width_std", 0.0))
+    strip_width_std = float(s_analysis.get("thread_width_std", 0.0))
 
     # 6. watermark variance
-    watermark_variance = float(watermark_analysis.get("variance", 0.0))
+    watermark_variance = float(w_analysis.get("variance", 0.0))
 
     # 7. watermark dynamic range
-    watermark_dyn_range = float(watermark_analysis.get("dynamic_range", 0.0))
+    watermark_dyn_range = float(w_analysis.get("dynamic_range", 0.0))
 
     # 8. watermark laplacian var
-    watermark_laplacian = float(watermark_analysis.get("laplacian_var", 0.0))
+    watermark_laplacian = float(w_analysis.get("laplacian_var", 0.0))
 
     # 9. watermark entropy
-    watermark_entropy = float(watermark_analysis.get("entropy", 4.3))
+    watermark_entropy = float(w_analysis.get("entropy", 4.3))
 
-    # 10. color hue dev
+    # 10. color hue dev (minimum deviation across raw and illuminant-calibrated moments)
     h_min, h_max = denom_spec["hsv_bounds"]["h_mean"]
     target_hue = (h_min + h_max) / 2.0
-    obs_hue = float(color_features.get("wb_h_mean", color_features.get("h_mean", target_hue)))
-    hue_dev = float(abs(obs_hue - target_hue))
+    raw_h = float(c_features.get("h_mean", target_hue))
+    wb_h = float(c_features.get("wb_h_mean", raw_h))
+    hue_dev = float(min(abs(raw_h - target_hue), abs(wb_h - target_hue)))
 
     # 11. color sat mean
-    color_sat_mean = float(color_features.get("s_mean", 0.0))
+    color_sat_mean = float(c_features.get("s_mean", 0.0))
 
     # 12. color sat std
-    color_sat_std = float(color_features.get("s_std", 0.0))
+    color_sat_std = float(c_features.get("s_std", 0.0))
 
     # 13. color val mean
-    color_val_mean = float(color_features.get("v_mean", 0.0))
+    color_val_mean = float(c_features.get("v_mean", 0.0))
 
     # 14. color delta_e
-    color_delta_e = compute_color_delta_e(color_features, predicted_denomination)
+    color_delta_e = compute_color_delta_e(c_features, predicted_denomination)
 
     # 15. microtexture edge density
     microtexture_edge_density = compute_microtexture_edge_density(warped_note)
 
     # 16. denomination numerical code
-    denom_code_map = {"100": 1.0, "200": 2.0, "500": 5.0, "2000": 20.0}
+    denom_code_map = {"100": 1.0, "200": 2.0, "500": 5.0}
     denom_code = denom_code_map.get(predicted_denomination, 5.0)
 
     vec = [

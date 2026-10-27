@@ -374,7 +374,6 @@ with st.sidebar:
             "Genuine ₹100 (Lavender)": "samples/genuine_100.png",
             "Genuine ₹200 (Bright Yellow)": "samples/genuine_200.png",
             "Genuine ₹500 (Stone Grey)": "samples/genuine_500.png",
-            "Genuine ₹2000 (Magenta)": "samples/genuine_2000.png",
             "Counterfeit: Broken Security Thread": "samples/counterfeit_broken_thread.png",
             "Counterfeit: Blank Watermark Window": "samples/counterfeit_blank_watermark.png",
             "Counterfeit: Altered Substrate Color": "samples/counterfeit_wrong_color.png",
@@ -425,7 +424,6 @@ with st.sidebar:
             "₹100 (Lavender)",
             "₹200 (Bright Yellow)",
             "₹500 (Stone Grey)",
-            "₹2000 (Magenta)",
         ],
         index=0,
         help="Lock the denomination to test specific central bank security standards regardless of room lighting.",
@@ -570,6 +568,12 @@ else:
 
 # Step 5: Feature Extraction (Color moments & HSV distributions)
 color_features = extract_color_features(warped_note)
+if enable_wb:
+    warped_wb = apply_color_constancy(warped_note)
+    color_features_wb = extract_color_features(warped_wb)
+    color_features["wb_h_mean"] = color_features_wb["h_mean"]
+    color_features["wb_s_mean"] = color_features_wb["s_mean"]
+    color_features["wb_v_mean"] = color_features_wb["v_mean"]
 
 # Step 6: Supervised ML Denomination Prediction (CO4)
 ml_denom, ml_conf, proba_dict = classifier.predict_robust(color_features, aspect_ratio)
@@ -582,9 +586,6 @@ elif "200" in denom_override:
     confidence = 1.0
 elif "500" in denom_override:
     pred_denom = "500"
-    confidence = 1.0
-elif "2000" in denom_override:
-    pred_denom = "2000"
     confidence = 1.0
 else:
     pred_denom = ml_denom
@@ -765,11 +766,11 @@ with col_metrics:
             </div>
             <div class="stat-pill">
                 <div class="stat-pill-num" style="color: {ai_badge_color};">{ai_prob_pct:.1f}%</div>
-                <div class="stat-pill-lbl">AI Authenticity</div>
+                <div class="stat-pill-lbl">ML Authenticity (Local)</div>
             </div>
             <div class="stat-pill">
                 <div class="stat-pill-num" style="font-size: 1.1rem; color: {ai_badge_color};">{report.ai_verdict.value if report.ai_verdict else 'N/A'}</div>
-                <div class="stat-pill-lbl">AI Model Verdict</div>
+                <div class="stat-pill-lbl">Local ML Verdict</div>
             </div>
             <div class="stat-pill">
                 <div class="stat-pill-num" style="color: {'#00F59B' if report.rules_passed_count == report.rules_total_count else '#FF3366'};">

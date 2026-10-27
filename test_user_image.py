@@ -17,14 +17,11 @@ from vision_pipeline import (
 from classifier import DenominationClassifier
 from expert_system import VerificationExpertSystem
 
-# Portable image path resolution: CLI arg -> user image -> default sample
+# Portable image path resolution: CLI arg -> default sample
 default_sample = os.path.join("samples", "genuine_100.png")
-captured_img = r"C:\Users\sahil\.gemini\antigravity-ide\brain\627b35ba-383d-4eb2-8ff4-4c86ccae4533\.user_uploaded\media_1792937667466.png"
 
 if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
     img_path = sys.argv[1]
-elif os.path.exists(captured_img):
-    img_path = captured_img
 else:
     img_path = default_sample
 

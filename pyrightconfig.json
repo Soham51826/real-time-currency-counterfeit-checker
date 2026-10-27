@@ -2,8 +2,6 @@
   "venvPath": ".",
   "venv": ".venv",
   "extraPaths": [
-    ".",
-    "C:/Users/sahil/AppData/Local/Programs/Python/Python311/Lib/site-packages",
-    "C:/Users/sahil/AppData/Roaming/Python/Python311/site-packages"
+    "."
   ]
 }
